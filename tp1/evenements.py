@@ -35,13 +35,9 @@ class Evenements(object):
 
         if self.distance is not None:
             dist = self.distance.distance()
-            # Only emit if the distance has changed significantly
-            LARGE_DIFFERENCE = 20  # mm, threshold for significant change
             proche = dist <= self.proximite_mm
             if self._pret and proche and not self._proche:
-                if not hasattr(self, "_last_proximite") or abs(dist - getattr(self, "_last_proximite", dist)) >= LARGE_DIFFERENCE:
-                    self._emit(PROXIMITE, dist)
-                    self._last_proximite = dist
+                self._emit(PROXIMITE, dist)
             self._proche = proche
    
 
@@ -59,5 +55,7 @@ if __name__ == "__main__":
     ev.on(ZONE, sur_zone)
     ev.on(PROXIMITE, sur_proximite)
     while True:
+        ev.couleur.refresh()
+        ev.distance.refresh()
         ev.update()
         wait(100)

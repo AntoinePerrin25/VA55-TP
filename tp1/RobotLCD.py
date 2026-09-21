@@ -13,7 +13,7 @@ class LCD(object):
 
     def status(self, state):
         self.screen.clear()
-        self.screen.print("c={0}".format(state.lastColor))
-        self.screen.print("d={0}".format(state.lastDistance))
-        self.screen.print("r={0}".format(state.reflection))
-        self.screen.print("e={0}".format(state.erreur))
+        self.screen.print("z={0}".format(state.zone))
+        self.screen.print("e={0}".format(int(state.erreur)))
+        self.screen.print("d={0}".format(int(state.commande)))
+        self.screen.print("v={0}".format(int(state.vitesse)))

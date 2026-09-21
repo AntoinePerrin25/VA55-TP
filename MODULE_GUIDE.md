@@ -18,13 +18,13 @@ Possède le pilotage, les capteurs, le son/LEDs, les évènements, l’état, l�
 
 `CapteurDistance.distance()` renvoie la distance en mm. Sans `sensor_type`, le brick essaie l’ultrason puis l’IR.
 
-`CapteurCouleur.color()` renvoie la `Color` Pybricks (LED R/G/B en cycle, pas de blanc). `zone()` / `sur_ligne()` utilisent la réflexion, LED rouge. `color()` seulement si on veut la couleur.
+`CapteurCouleur.refresh()` lit la réflexion une fois (LED rouge, 0–100). `zone()` / `sur_ligne()` / `reflection()` réutilisent cet échantillon. `color()` seulement hors boucle (cycle R/G/B, pas de blanc).
 
 `SonLumiere.allumer(couleur)` / `eteindre()` / `clignoter()` via `ev3.light` (les deux LEDs ensemble). `beep()` pour le son.
 
 `Evenements.update()` compare zone et distance à l’échantillon précédent. `on("zone", fn)` reçoit `(avant, maintenant)`. `on("proximite", fn)` reçoit la distance au franchissement du seuil.
 
-`Demo` enchaîne tout dans une boucle 100 ms : bang-bang sur la réflexion, `RobotState` + LCD + CSV, stop proximité ou bouton central. Remplacer `commande()` par le PID.
+`Demo` boucle à 100 ms. PID latéral plus réactif en courbure (`Kp`, `δ` max). Vitesse de croisière constante sur la ligne ; rampe accélération/freinage **seulement** pour un obstacle (`SLOW_MM` → `STOP_MM`, reprise à `REPRISE_MM`).
 
 ## Entry points
 
@@ -49,8 +49,8 @@ Possède le pilotage, les capteurs, le son/LEDs, les évènements, l’état, l�
 | Couleur / zones au sol | `CapteurCouleur` dans `tp1/capteur_couleur.py` | `brickrun -r -- pybricks-micropython /home/robot/tp1/capteur_couleur.py` |
 | Son / LEDs | `SonLumiere` dans `tp1/son_lumiere.py` | `brickrun -r -- pybricks-micropython /home/robot/tp1/son_lumiere.py` |
 | Changement de zone / proximité | `Evenements` dans `tp1/evenements.py` | `brickrun -r -- pybricks-micropython /home/robot/tp1/evenements.py` |
-| Boucle complète / bang-bang | `Demo` dans `tp1/demo.py` | `brickrun -r -- pybricks-micropython /home/robot/tp1/demo.py` |
-| État / LCD / CSV | `RobotState`, `LCD`, `RobotLogger` | Écran + `log_bangbang.csv` pendant `demo.py` |
+| Boucle / PID / bang-bang | `Demo` dans `tp1/demo.py` (`commande`, `commande_bangbang`, `vitesse`) | `brickrun -r -- pybricks-micropython /home/robot/tp1/demo.py` |
+| État / LCD / CSV | `RobotState`, `LCD`, `RobotLogger` | Écran + `log_pid.csv` pendant `demo.py` |
 
 ## Dependencies
 
@@ -58,4 +58,4 @@ Pybricks `Motor`, `DriveBase`, `UltrasonicSensor`, `InfraredSensor`, `ColorSenso
 
 ## Invariants and hazards
 
-Python 3.4 sur le brick : pas de f-strings. Lancer avec `brickrun`, pas `./fichier.py`. `forward` / `drive` sont en **mm/s**, plus en deg/s moteurs. Diamètre et entraxe (`WHEEL_DIAMETER`, `AXLE_TRACK`) doivent matcher le châssis ; si ça recule, inverser `Direction` du moteur gauche. L’IR n’est pas en mm natif : `distance()` convertit 0–100 vers 0–700 mm (`IR_MM_PER_UNIT`). Forcer le type avec `sensor_type='us'` ou `'ir'` si l’auto-détection se trompe. Recaler `LINE_REFLECTION_MAX`, `CONSIGNE` et `DEFAULT_ZONES` sur le tapis réel. Le PID doit appeler `drive()`, pas `rotate()` : brancher dans `Demo.commande()`. `ev3.light` allume les deux LEDs ensemble (`GREEN`, `RED`, `ORANGE`). `Evenements` ne déclenche rien tout seul : il faut `update()` dans la boucle. Premier échantillon ignoré. Proximité = front montant seulement (pas tant qu’on reste trop près). Bouton central pour arrêter la démo. Le CSV du rapport (`log_bangbang.csv`) est recréé à chaque `RobotState()`. Excel FR : séparateur `;`. Après un run : `scp robot@IP:/home/robot/tp1/log_bangbang.csv .`
+Python 3.4 sur le brick : pas de f-strings. Lancer avec `brickrun`, pas `./fichier.py`. `forward` / `drive` sont en **mm/s**. Diamètre et entraxe (`WHEEL_DIAMETER`, `AXLE_TRACK`) doivent matcher le châssis. L’IR convertit 0–100 vers 0–700 mm. Recaler `CONSIGNE`, `KP`/`KI`/`KD`, `SPEED`, `SLOW_MM`/`STOP_MM` sur le tapis. PID via `drive()`. `refresh()` couleur et distance une fois par `pas()`. Obstacle : rampe puis stop, reprise si l’obstacle part. Bouton central pour arrêter. CSV `log_pid.csv`. Excel FR : `;`. Depuis le Mac : `scp robot@IP:/home/robot/tp1/log_pid.csv .`

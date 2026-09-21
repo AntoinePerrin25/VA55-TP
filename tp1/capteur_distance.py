@@ -16,6 +16,7 @@ class CapteurDistance(object):
         self.port = port
         self.kind = None
         self._sensor = None
+        self._dist = None
         self._connect(sensor_type)
 
     def _connect(self, sensor_type):
@@ -48,19 +49,26 @@ class CapteurDistance(object):
             pass
         raise OSError("pas de capteur")
 
-    def distance(self):
-        """ 0–100 conversion en 0–700 mm."""
+    def refresh(self):
         raw = self._sensor.distance()
-
-        # TODO: SOMETIMES GET 2550 OR TOO BIG VALUE, NEED FIX
+        if raw is None or raw < 0:
+            raw = 2550
         if self.kind == TYPE_IR:
-            return int(raw * IR_MM_PER_UNIT)
+            raw = int(raw * IR_MM_PER_UNIT)
+        elif raw > 2550:
+            raw = 2550
+        self._dist = raw
         return raw
+
+    def distance(self):
+        if self._dist is None:
+            return self.refresh()
+        return self._dist
 
 
 if __name__ == "__main__":
     capteur = CapteurDistance()
     print("kind={0}".format(capteur.kind))
     for _ in range(1000):
-        print(capteur.distance())
+        print(capteur.refresh())
         wait(200)

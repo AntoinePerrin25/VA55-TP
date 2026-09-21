@@ -6,6 +6,7 @@ from pybricks.tools import wait
 
 # seil reflexion %, < = ligne noire au sol.
 LINE_REFLECTION_MAX = 20
+REFL_ALPHA = 0.65
 
 DEFAULT_ZONES = {
     Color.BLACK: "ligne",
@@ -34,6 +35,7 @@ class CapteurCouleur(object):
         self._sensor = ColorSensor(port)
         self._zones = DEFAULT_ZONES if zones is None else zones
         self.line_reflection_max = line_reflection_max
+        self._refl = None
 
     def color(self):
         return self._sensor.color()
@@ -44,9 +46,22 @@ class CapteurCouleur(object):
             return None
         return _COLOR_NAMES.get(detected)
 
+    def refresh(self):
+        val = self._sensor.reflection()
+        if val < 0:
+            val = 0
+        elif val > 100:
+            val = 100
+        if self._refl is None:
+            self._refl = val
+        else:
+            self._refl = int(round(REFL_ALPHA * val + (1.0 - REFL_ALPHA) * self._refl))
+        return self._refl
+
     def reflection(self):
-        # LED rouge. Les 3 LED ne font pas de blanc (rgb() = R puis G puis B).
-        return self._sensor.reflection()
+        if self._refl is None:
+            return self.refresh()
+        return self._refl
 
     def zone(self):
         if self.sur_ligne():
@@ -63,6 +78,7 @@ class CapteurCouleur(object):
 if __name__ == "__main__":
     capteur = CapteurCouleur()
     for _ in range(2000):
+        capteur.refresh()
         print(
             "zone={0} refl={1} ligne={2}".format(
                 capteur.zone(),

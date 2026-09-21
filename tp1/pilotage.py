@@ -20,6 +20,7 @@ class Pilotage(object):
         left = Motor(left_port)
         right = Motor(right_port)
         self.base = DriveBase(left, right, wheel_diameter, axle_track)
+        self.base.settings(200, 800, 160, 500)
 
     def drive(self, speed, turn_rate):
         self.base.drive(speed, turn_rate)

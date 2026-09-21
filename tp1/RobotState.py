@@ -7,13 +7,14 @@ from RobotLogger import RobotLogger
 
 
 class RobotState(object):
-    def __init__(self, ev3=None, log_filename="log_bangbang.csv"):
+    def __init__(self, ev3=None, log_filename="log_pid.csv"):
         self.ev3 = ev3 if ev3 is not None else EV3Brick()
         self.lastColor = None
         self.lastDistance = -1
         self.reflection = 0
         self.erreur = 0
         self.commande = 0
+        self.vitesse = 0
         self.zone = None
         self.logger = RobotLogger(log_filename)
         self.LCD = LCD(self.ev3)
@@ -24,13 +25,14 @@ class RobotState(object):
     def updateLastDistance(self, distance):
         self.lastDistance = distance
 
-    def update(self, color, distance, reflection=0, erreur=0, zone=None, commande=0):
+    def update(self, color, distance, reflection=0, erreur=0, zone=None, commande=0, vitesse=0):
         self.lastColor = color
         self.lastDistance = distance
         self.reflection = reflection
         self.erreur = erreur
         self.zone = zone
         self.commande = commande
+        self.vitesse = vitesse
 
     def updateLCD(self, text):
         self.LCD.Text(text)
