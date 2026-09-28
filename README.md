@@ -12,4 +12,8 @@ Le brick exécute les scripts avec :
 brickrun -r -- pybricks-micropython /home/robot/tp1/pilotage.py
 ```
 
-scp robot@172.29.255.202:/home/robot/tp1/log_bangbang.csv .
+```bash
+python3 plot_logs.py
+```
+
+Tous les `*.csv` → `pid_plots.html` (e, δ, temps de parcours, gains `#meta`).
