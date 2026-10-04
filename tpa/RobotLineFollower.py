@@ -6,7 +6,7 @@ class RobotLineFollower:
     def __init__(
         self,
         robot,
-        speed=500,
+        speed=400,
         setpoint=50,
         period_ms=5,
         kp=1.0,
@@ -55,9 +55,15 @@ class RobotLineFollower:
                 wait(self.period_ms)
         finally:
             self.robot.drive.stop()
+            self.robot.close()
             log.close()
 
-    def run_pid(self, filename="suivi_pid.csv", target_distance_mm=None):
+    def run_pid(
+        self,
+        filename="suivi_pid.csv",
+        target_distance_mm=None,
+        localization_mode="kalman",
+    ):
         log = self._open_log(filename, "pid")
         watch = StopWatch()
         integral = 0
@@ -66,6 +72,7 @@ class RobotLineFollower:
         filtered_derivative = 0
         if target_distance_mm is not None:
             self.robot.drive.reset_distance()
+        self.robot.reset_localization()
 
         try:
             while Button.CENTER not in self.robot.ev3.buttons.pressed():
@@ -102,10 +109,12 @@ class RobotLineFollower:
                 steering = proportional_derivative + self.ki * integral
                 steering = self._limit(steering, -self.max_steering, self.max_steering)
                 self.robot.drive.drive(self.speed, steering)
+                self.robot.update_localization(localization_mode)
                 log.write("{0},{1},{2},{3},{4},{5},pid\n".format(
                     watch.time(), reflection, error, integral, derivative, steering
                 ))
                 wait(self.period_ms)
         finally:
             self.robot.drive.stop()
+            self.robot.close()
             log.close()

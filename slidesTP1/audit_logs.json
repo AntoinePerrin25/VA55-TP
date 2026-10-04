@@ -1,0 +1,43 @@
+{
+  "bang_bang": {
+    "source": "logsPIDbetter/bang_bang.csv",
+    "samples": 1194,
+    "log_duration_s": 20.761,
+    "median_dt_ms": 17.000000000001236,
+    "mean_error": -18.500837520938024,
+    "mae": 29.77889447236181,
+    "rmse": 33.19941272108779,
+    "max_abs_error": 45.0
+  },
+  "droite": {
+    "source": "logsTP1/log_pid_STRAIGHT.csv",
+    "samples": 342,
+    "log_duration_s": 17.96,
+    "median_dt_ms": 50.00000000000071,
+    "mean_error": -0.7514619883040936,
+    "mae": 7.891812865497076,
+    "rmse": 11.56180948625652,
+    "max_abs_error": 42.0,
+    "saturated_samples": 23,
+    "saturated_percent": 6.7251461988304095
+  },
+  "tapis": {
+    "source": "logsPIDbetter/suivi_pid_tapis_spir.csv",
+    "samples": 1063,
+    "log_duration_s": 21.168,
+    "median_dt_ms": 19.999999999999574,
+    "mean_error": -2.591721542803387,
+    "mae": 20.71777986829727,
+    "rmse": 24.421722052227135,
+    "max_abs_error": 45.0,
+    "saturated_samples": 1,
+    "saturated_percent": 0.09407337723424271,
+    "verified_gains": [
+      2,
+      1.7,
+      0.035
+    ],
+    "max_reconstruction_residual": 8.526512829121202e-14
+  },
+  "tapis_duplicate": true
+}

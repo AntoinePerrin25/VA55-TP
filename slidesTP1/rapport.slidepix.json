@@ -1,0 +1,1006 @@
+{
+  "schemaVersion": 1,
+  "id": "va55-tp-commande-laterale",
+  "metadata": {
+    "title": "VA55 — commande latérale",
+    "author": "",
+    "description": "Rapport étudiant de suivi de ligne : observations, réglages, code latéral et bilan des essais conservés."
+  },
+  "size": {
+    "width": 1920,
+    "height": 1080
+  },
+  "theme": {
+    "background": "#ffffff",
+    "foreground": "#000000",
+    "accent": "#000000",
+    "fontFamily": "Palatino, \"Palatino Linotype\", \"Times New Roman\", Times, serif"
+  },
+  "pageNumbers": {
+    "enabled": true,
+    "color": "#000000",
+    "fontSize": 22
+  },
+  "layouts": {},
+  "slides": [
+    {
+      "id": "s1",
+      "title": "Titre",
+      "notes": "",
+      "hidden": false,
+      "hidePageNumber": false,
+      "transition": {
+        "type": "none",
+        "durationMs": 0,
+        "easing": "ease-in-out"
+      },
+      "timeline": [],
+      "elements": [
+        {
+          "id": "s1-title",
+          "morphKey": "s1-title",
+          "x": 120,
+          "y": 300,
+          "width": 1680,
+          "height": 120,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 1,
+          "locked": false,
+          "hidden": false,
+          "type": "text",
+          "markdown": "VA55 - TP1 rendu",
+          "style": {
+            "fontFamily": "Palatino, \"Palatino Linotype\", \"Times New Roman\", Times, serif",
+            "fontSize": 68,
+            "fontWeight": 600,
+            "color": "#000000",
+            "textAlign": "center",
+            "verticalAlign": "top",
+            "lineHeight": 1.05,
+            "padding": 0
+          }
+        },
+        {
+          "id": "s1-sub",
+          "morphKey": "s1-sub",
+          "x": 200,
+          "y": 450,
+          "width": 1520,
+          "height": 200,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 1,
+          "locked": false,
+          "hidden": false,
+          "type": "text",
+          "markdown": "PERRIN Antoine, BEAUJARD Traïan",
+          "style": {
+            "fontFamily": "Palatino, \"Palatino Linotype\", \"Times New Roman\", Times, serif",
+            "fontSize": 32,
+            "fontWeight": 400,
+            "color": "#000000",
+            "textAlign": "center",
+            "verticalAlign": "top",
+            "lineHeight": 1.35,
+            "padding": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "s2",
+      "title": "Ce qu’on cherche à faire",
+      "notes": "Source : tpa/RobotDrive.py et RobotSensor.py. 0 et 100 sont les extrêmes de l’échelle, pas une calibration noir/blanc mesurée. La vitesse actuelle 400 est une vitesse moteur, pas 400 mm/s.",
+      "hidden": false,
+      "hidePageNumber": false,
+      "transition": {
+        "type": "none",
+        "durationMs": 0,
+        "easing": "ease-in-out"
+      },
+      "timeline": [],
+      "elements": [
+        {
+          "id": "s2-h",
+          "morphKey": "s2-h",
+          "x": 80,
+          "y": 48,
+          "width": 1760,
+          "height": 64,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 1,
+          "locked": false,
+          "hidden": false,
+          "type": "text",
+          "markdown": "Ce qu’on cherche à faire",
+          "style": {
+            "fontFamily": "Palatino, \"Palatino Linotype\", \"Times New Roman\", Times, serif",
+            "fontSize": 40,
+            "fontWeight": 600,
+            "color": "#000000",
+            "textAlign": "left",
+            "verticalAlign": "top",
+            "lineHeight": 1.05,
+            "padding": 0
+          }
+        },
+        {
+          "id": "s2-b",
+          "morphKey": "s2-b",
+          "x": 80,
+          "y": 140,
+          "width": 1760,
+          "height": 860,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 1,
+          "locked": false,
+          "hidden": false,
+          "type": "text",
+          "markdown": "On veut que le robot suive la ligne sans passer son temps à zigzaguer. Le capteur est à gauche : on lui fait suivre le bord gauche de la ligne.\n\nOn prend 50 comme valeur à viser, entre le noir (0) et le blanc (100). Pour voir si on s'en éloigne, on trace l'erreur :\n\n$$e = x - 50$$\n\nQuand le capteur voit trop de blanc, on corrige vers la droite. Quand il voit trop de noir, on corrige vers la gauche.",
+          "style": {
+            "fontFamily": "Palatino, \"Palatino Linotype\", \"Times New Roman\", Times, serif",
+            "fontSize": 32,
+            "fontWeight": 400,
+            "color": "#000000",
+            "textAlign": "left",
+            "verticalAlign": "top",
+            "lineHeight": 1.34,
+            "padding": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "s3",
+      "title": "Le réglage utilisé sur le tapis",
+      "notes": "Les gains 2 / 1.70 / 0.035 reconstruisent steering sur les 1062 points non saturés (résidu maximal 2.3e-13). Le filtre et l’anti-windup décrits sont ceux du code actuel ; le fichier exécuté lors de l’essai n’a pas été archivé. Défauts actuels : 1 / 0.85 / 0.0175.",
+      "hidden": false,
+      "hidePageNumber": false,
+      "transition": {
+        "type": "none",
+        "durationMs": 0,
+        "easing": "ease-in-out"
+      },
+      "timeline": [],
+      "elements": [
+        {
+          "id": "s3-h",
+          "morphKey": "s3-h",
+          "x": 80,
+          "y": 40,
+          "width": 1760,
+          "height": 58,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 1,
+          "locked": false,
+          "hidden": false,
+          "type": "text",
+          "markdown": "Le réglage utilisé sur le tapis",
+          "style": {
+            "fontFamily": "Palatino, \"Palatino Linotype\", \"Times New Roman\", Times, serif",
+            "fontSize": 40,
+            "fontWeight": 600,
+            "color": "#000000",
+            "textAlign": "left",
+            "verticalAlign": "top",
+            "lineHeight": 1.05,
+            "padding": 0
+          }
+        },
+        {
+          "id": "s3-b",
+          "morphKey": "s3-b",
+          "x": 46,
+          "y": 116,
+          "width": 1760,
+          "height": 620,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 1,
+          "locked": false,
+          "hidden": false,
+          "type": "text",
+          "markdown": "En se basant sur les différents termes P, I, D, expliqués ci-dessous, nous avons paramétré nos 3 gains.\n\nLe terme P donne la correction principale : plus on s'éloigne de 50, plus il corrige.\n\nLe terme I garde une correction quand l'erreur dure. C'est utile dans un virage, mais il peut aussi continuer à pousser alors qu'on revient déjà vers le bord.\n\nLe terme D réagit aux changements rapides de l'erreur. On le filtre pour éviter que chaque petite variation du capteur fasse changer brutalement la commande.\n\n**kp = 2 ; ki = 1,70 ; kd = 0,035**.",
+          "style": {
+            "fontFamily": "Palatino, \"Palatino Linotype\", \"Times New Roman\", Times, serif",
+            "fontSize": 28,
+            "fontWeight": 400,
+            "color": "#000000",
+            "textAlign": "left",
+            "verticalAlign": "top",
+            "lineHeight": 1.28,
+            "padding": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "s5",
+      "title": "Bang-bang",
+      "notes": "Source : logsPIDbetter/bang_bang.csv, 1194 échantillons, durée 20.761 s. Le seuil 20 et les niveaux ±200 sont vérifiés sur toutes les lignes. Le code actuel a max_steering=300 par défaut : ne pas confondre configuration actuelle et essai.",
+      "hidden": false,
+      "hidePageNumber": false,
+      "transition": {
+        "type": "none",
+        "durationMs": 0,
+        "easing": "ease-in-out"
+      },
+      "timeline": [],
+      "elements": [
+        {
+          "id": "s5-h",
+          "morphKey": "s5-h",
+          "x": 72,
+          "y": 28,
+          "width": 980,
+          "height": 56,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 1,
+          "locked": false,
+          "hidden": false,
+          "type": "text",
+          "markdown": "Bang-bang (ligne droite)",
+          "style": {
+            "fontFamily": "Palatino, \"Palatino Linotype\", \"Times New Roman\", Times, serif",
+            "fontSize": 36,
+            "fontWeight": 600,
+            "color": "#000000",
+            "textAlign": "left",
+            "verticalAlign": "top",
+            "lineHeight": 1.05,
+            "padding": 0
+          }
+        },
+        {
+          "id": "s5-t",
+          "morphKey": "s5-t",
+          "x": 980,
+          "y": 54,
+          "width": 868,
+          "height": 96,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 1,
+          "locked": false,
+          "hidden": false,
+          "type": "text",
+          "markdown": "20,8 s",
+          "style": {
+            "fontFamily": "Palatino, \"Palatino Linotype\", \"Times New Roman\", Times, serif",
+            "fontSize": 68,
+            "fontWeight": 600,
+            "color": "#000000",
+            "textAlign": "right",
+            "verticalAlign": "top",
+            "lineHeight": 1,
+            "padding": 0
+          }
+        },
+        {
+          "id": "s5-c",
+          "morphKey": "s5-c",
+          "x": 72,
+          "y": 162,
+          "width": 1760,
+          "height": 90,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 1,
+          "locked": false,
+          "hidden": false,
+          "type": "text",
+          "markdown": "La commande passe directement de +200 à -200 : on voit bien les allers-retours sur la courbe. Autre détail : elle bascule à une réflexion de 20, alors qu'on trace l'erreur par rapport à 50. On ne vise donc pas le même point qu'avec le PID.",
+          "style": {
+            "fontFamily": "Palatino, \"Palatino Linotype\", \"Times New Roman\", Times, serif",
+            "fontSize": 24,
+            "fontWeight": 400,
+            "color": "#000000",
+            "textAlign": "left",
+            "verticalAlign": "top",
+            "lineHeight": 1.25,
+            "padding": 0
+          }
+        },
+        {
+          "id": "s5-img",
+          "morphKey": "s5-img",
+          "x": 268,
+          "y": 268,
+          "width": 1384.01,
+          "height": 710,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 0,
+          "locked": false,
+          "hidden": false,
+          "alt": "Erreur et commande bang-bang pendant 20,8 secondes.",
+          "type": "image",
+          "src": "plots/bangbang.png",
+          "storage": "linked",
+          "crop": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          },
+          "borderRadius": 0,
+          "edgeFade": 0,
+          "border": {
+            "width": 0,
+            "color": "transparent"
+          },
+          "lockAspectRatio": true,
+          "aspectRatio": 1.949316
+        }
+      ]
+    },
+    {
+      "id": "s6",
+      "title": "Ligne droite",
+      "notes": "Source : logsTP1/log_pid_STRAIGHT.csv, 342 points. Gains KP=1.7, KI=0.9, KI_BLANC=1.1, KD=0.06 ; limite 50 ; vitesse consigne 155 mm/s ; pas médian 50 ms. Distance (mm) est un champ capteur, pas une distance parcourue monotone : 2550 au départ, 1589 à la fin. Les auteurs confirment un repère physique à 1 m. Le trait est rétabli à 1000/155 = 6,45 s : position temporelle estimée à la vitesse de consigne, sans instant de franchissement mesuré indépendamment. Essai avec d’autres gains que le tapis : ne satisfait pas la même commande finale exigée p.6.",
+      "hidden": false,
+      "hidePageNumber": false,
+      "transition": {
+        "type": "none",
+        "durationMs": 0,
+        "easing": "ease-in-out"
+      },
+      "timeline": [],
+      "elements": [
+        {
+          "id": "s6-h",
+          "morphKey": "s6-h",
+          "x": 72,
+          "y": 24,
+          "width": 980,
+          "height": 56,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 1,
+          "locked": false,
+          "hidden": false,
+          "type": "text",
+          "markdown": "Ligne droite avec **kp = 2 ; ki = 1,70 ; kd = 0,035**",
+          "style": {
+            "fontFamily": "Palatino, \"Palatino Linotype\", \"Times New Roman\", Times, serif",
+            "fontSize": 36,
+            "fontWeight": 600,
+            "color": "#000000",
+            "textAlign": "left",
+            "verticalAlign": "top",
+            "lineHeight": 1.05,
+            "padding": 0
+          }
+        },
+        {
+          "id": "s6-t",
+          "morphKey": "s6-t",
+          "x": 980,
+          "y": 54,
+          "width": 868,
+          "height": 96,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 1,
+          "locked": false,
+          "hidden": false,
+          "type": "text",
+          "markdown": "18,0 s",
+          "style": {
+            "fontFamily": "Palatino, \"Palatino Linotype\", \"Times New Roman\", Times, serif",
+            "fontSize": 68,
+            "fontWeight": 600,
+            "color": "#000000",
+            "textAlign": "right",
+            "verticalAlign": "top",
+            "lineHeight": 1,
+            "padding": 0
+          }
+        },
+        {
+          "id": "s6-c",
+          "morphKey": "s6-c",
+          "x": 72,
+          "y": 162,
+          "width": 1760,
+          "height": 90,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 1,
+          "locked": false,
+          "hidden": false,
+          "type": "text",
+          "markdown": "Sur cette droite, l’erreur reste souvent près de zéro, avec encore des écarts brusques. Nous avions un repère physique à 1 m. Le trait à 6,45 s correspond au temps estimé pour l’atteindre à 155 mm/s ; les 18 s couvrent tout l’enregistrement.",
+          "style": {
+            "fontFamily": "Palatino, \"Palatino Linotype\", \"Times New Roman\", Times, serif",
+            "fontSize": 24,
+            "fontWeight": 400,
+            "color": "#000000",
+            "textAlign": "left",
+            "verticalAlign": "top",
+            "lineHeight": 1.25,
+            "padding": 0
+          }
+        },
+        {
+          "id": "s6-img",
+          "morphKey": "s6-img",
+          "x": 276.75,
+          "y": 268,
+          "width": 1366.51,
+          "height": 710,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 0,
+          "locked": false,
+          "hidden": false,
+          "alt": "Erreur et commande sur la droite ; repère physique de 1 m, temps estimé à 6,45 s ; log complet de 17,96 s.",
+          "type": "image",
+          "src": "plots/droite.png",
+          "storage": "linked",
+          "crop": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          },
+          "borderRadius": 0,
+          "edgeFade": 0,
+          "border": {
+            "width": 0,
+            "color": "transparent"
+          },
+          "lockAspectRatio": true,
+          "aspectRatio": 1.924658
+        }
+      ]
+    },
+    {
+      "id": "s7",
+      "title": "Tapis de course",
+      "notes": "Source : logsPIDbetter/suivi_pid_tapis_spir.csv, 1063 points. Parcours complet et arrêt manuel confirmés par les auteurs ; pas de marqueur départ/arrivée indépendant dans le CSV. suivi_pid_tapis.csv est une copie identique, pas un second essai. Circuit 8 et localisation/Kalman exclus.",
+      "hidden": false,
+      "hidePageNumber": false,
+      "transition": {
+        "type": "none",
+        "durationMs": 0,
+        "easing": "ease-in-out"
+      },
+      "timeline": [],
+      "elements": [
+        {
+          "id": "s7-h",
+          "morphKey": "s7-h",
+          "x": 72,
+          "y": 28,
+          "width": 980,
+          "height": 56,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 1,
+          "locked": false,
+          "hidden": false,
+          "type": "text",
+          "markdown": "Tapis de course **kp = 2 ; ki = 1,70 ; kd = 0,035**",
+          "style": {
+            "fontFamily": "Palatino, \"Palatino Linotype\", \"Times New Roman\", Times, serif",
+            "fontSize": 36,
+            "fontWeight": 600,
+            "color": "#000000",
+            "textAlign": "left",
+            "verticalAlign": "top",
+            "lineHeight": 1.05,
+            "padding": 0
+          }
+        },
+        {
+          "id": "s7-t",
+          "morphKey": "s7-t",
+          "x": 980,
+          "y": 54,
+          "width": 868,
+          "height": 96,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 1,
+          "locked": false,
+          "hidden": false,
+          "type": "text",
+          "markdown": "21,2 s",
+          "style": {
+            "fontFamily": "Palatino, \"Palatino Linotype\", \"Times New Roman\", Times, serif",
+            "fontSize": 68,
+            "fontWeight": 600,
+            "color": "#000000",
+            "textAlign": "right",
+            "verticalAlign": "top",
+            "lineHeight": 1,
+            "padding": 0
+          }
+        },
+        {
+          "id": "s7-c",
+          "morphKey": "s7-c",
+          "x": 72,
+          "y": 162,
+          "width": 1760,
+          "height": 90,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 1,
+          "locked": false,
+          "hidden": false,
+          "type": "text",
+          "markdown": "Le parcours du tapis dure environ 21,2 s, avec un arrêt manuel. L'erreur revient plusieurs fois vers zéro, mais elle reste aussi un moment près de -44 : le capteur voit alors surtout du noir. Le suivi fonctionne sur ce parcours, mais il reste irrégulier.",
+          "style": {
+            "fontFamily": "Palatino, \"Palatino Linotype\", \"Times New Roman\", Times, serif",
+            "fontSize": 24,
+            "fontWeight": 400,
+            "color": "#000000",
+            "textAlign": "left",
+            "verticalAlign": "top",
+            "lineHeight": 1.25,
+            "padding": 0
+          }
+        },
+        {
+          "id": "s7-img",
+          "morphKey": "s7-img",
+          "x": 268,
+          "y": 268,
+          "width": 1384.01,
+          "height": 710,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 0,
+          "locked": false,
+          "hidden": false,
+          "alt": "Erreur et commande du tapis, log de 21,168 s, arrêt manuel.",
+          "type": "image",
+          "src": "plots/tapis.png",
+          "storage": "linked",
+          "crop": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          },
+          "borderRadius": 0,
+          "edgeFade": 0,
+          "border": {
+            "width": 0,
+            "color": "transparent"
+          },
+          "lockAspectRatio": true,
+          "aspectRatio": 1.949316
+        }
+      ]
+    },
+    {
+      "id": "s8",
+      "title": "Un seul essai, les trois contributions du PID",
+      "notes": "Termes reconstruits : P=2*error ; I=1.7*integral ; D=0.035*derivative. Valeurs efficaces sur l’extrait, dans l’unité de steering ; reconstruction exacte sur les points non saturés. Le D était précédemment tracé avec 0.0345, corrigé en 0.035.\nLecture du graphique : les contributions sont reconstruites depuis error, integral et derivative du même CSV, avec les gains 2 / 1.70 / 0.035. δ est la colonne steering enregistrée ; c’est la somme après limitation. Aucun essai P, PI ou D indépendant n’est représenté.",
+      "hidden": false,
+      "hidePageNumber": false,
+      "transition": {
+        "type": "none",
+        "durationMs": 0,
+        "easing": "ease-in-out"
+      },
+      "timeline": [],
+      "elements": [
+        {
+          "id": "s8-h",
+          "morphKey": "s8-h",
+          "x": 72,
+          "y": 28,
+          "width": 1760,
+          "height": 52,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 1,
+          "locked": false,
+          "hidden": false,
+          "type": "text",
+          "markdown": "Un seul essai, les trois contributions du PID",
+          "style": {
+            "fontFamily": "Palatino, \"Palatino Linotype\", \"Times New Roman\", Times, serif",
+            "fontSize": 36,
+            "fontWeight": 600,
+            "color": "#000000",
+            "textAlign": "left",
+            "verticalAlign": "top",
+            "lineHeight": 1.05,
+            "padding": 0
+          }
+        },
+        {
+          "id": "s8-c",
+          "morphKey": "s8-c",
+          "x": 72,
+          "y": 96,
+          "width": 1760,
+          "height": 140,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 1,
+          "locked": false,
+          "hidden": false,
+          "type": "text",
+          "markdown": "Zoom de 8,6 à 12,6 s sur le même log du tapis. En haut : l’erreur. En bas : les contributions calculées par chaque terme du PID; P en bleu, I en orange, D en vert,  à chaque instant, P, I et D s’additionnent pour donner la commande δ en rose.",
+          "style": {
+            "fontFamily": "Palatino, \"Palatino Linotype\", \"Times New Roman\", Times, serif",
+            "fontSize": 26,
+            "fontWeight": 400,
+            "color": "#000000",
+            "textAlign": "left",
+            "verticalAlign": "top",
+            "lineHeight": 1.3,
+            "padding": 0
+          }
+        },
+        {
+          "id": "s8-img",
+          "morphKey": "s8-img",
+          "x": 314.2,
+          "y": 250,
+          "width": 1291.6,
+          "height": 700,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 0,
+          "locked": false,
+          "hidden": false,
+          "alt": "Un seul log tapis : erreur en haut ; P bleu, I orange, D vert et commande totale δ rose en bas, aux mêmes instants.",
+          "type": "image",
+          "src": "plots/pid_termes.png",
+          "storage": "linked",
+          "crop": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          },
+          "borderRadius": 0,
+          "edgeFade": 0,
+          "border": {
+            "width": 0,
+            "color": "transparent"
+          },
+          "lockAspectRatio": true,
+          "aspectRatio": 1.845143
+        }
+      ]
+    },
+    {
+      "id": "s4",
+      "title": "Ce qui a amélioré la stabilité",
+      "notes": "\nObservation rapportée par les auteurs : la réduction de period_ms à 5 a résolu leur problème de stabilité lors des essais non sauvegardés. Ce résultat n’est pas démontré par les CSV conservés. period_ms est une attente ajoutée au temps de calcul, pas une période garantie à 5 ms ni une fréquence mesurée de 200 Hz.",
+      "hidden": false,
+      "hidePageNumber": false,
+      "transition": {
+        "type": "none",
+        "durationMs": 0,
+        "easing": "ease-in-out"
+      },
+      "timeline": [],
+      "elements": [
+        {
+          "id": "s4-h",
+          "morphKey": "s4-h",
+          "x": 80,
+          "y": 48,
+          "width": 1760,
+          "height": 64,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 1,
+          "locked": false,
+          "hidden": false,
+          "type": "text",
+          "markdown": "Ce qui a amélioré la stabilité",
+          "style": {
+            "fontFamily": "Palatino, \"Palatino Linotype\", \"Times New Roman\", Times, serif",
+            "fontSize": 40,
+            "fontWeight": 600,
+            "color": "#000000",
+            "textAlign": "left",
+            "verticalAlign": "top",
+            "lineHeight": 1.05,
+            "padding": 0
+          }
+        },
+        {
+          "id": "s4-b",
+          "morphKey": "s4-b",
+          "x": 80,
+          "y": 140,
+          "width": 1760,
+          "height": 850,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 1,
+          "locked": false,
+          "hidden": false,
+          "type": "text",
+          "markdown": "Pendant nos essais, nous avons résolu le problème de stabilité en faisant calculer la correction plus souvent : nous avons réduit l’attente à period_ms ~= 5 *(temps d'écritures pour légèrement augmenter la frequence)*. \n(nous avons perdu les logs de ces meilleurs essais, mais on l'a bien montré lors de la dernière scéance que c'était stable..)\n\nCela permet de réagir plus tôt quand le capteur s’éloigne du bord, au lieu de laisser le robot continuer trop longtemps avant de corriger.",
+          "style": {
+            "fontFamily": "Palatino, \"Palatino Linotype\", \"Times New Roman\", Times, serif",
+            "fontSize": 30,
+            "fontWeight": 400,
+            "color": "#000000",
+            "textAlign": "left",
+            "verticalAlign": "top",
+            "lineHeight": 1.32,
+            "padding": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "s9",
+      "title": "Code de la commande — calcul des termes",
+      "notes": "Extrait exact de la source actuelle, sans localisation. Gains par défaut actuels 1 / 0.85 / 0.0175, différents des gains du tapis conservé 2 / 1.70 / 0.035. Le code historique de cet essai n’est pas archivé. previous_error=0 crée un pic de dérivée au démarrage si la première erreur est non nulle ; initialiser avec la première lecture est une amélioration proposée, non testée.",
+      "hidden": false,
+      "hidePageNumber": false,
+      "transition": {
+        "type": "none",
+        "durationMs": 0,
+        "easing": "ease-in-out"
+      },
+      "timeline": [],
+      "elements": [
+        {
+          "id": "s9-h",
+          "morphKey": "s9-h",
+          "x": 80,
+          "y": 48,
+          "width": 1760,
+          "height": 64,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 1,
+          "locked": false,
+          "hidden": false,
+          "type": "text",
+          "markdown": "Code de la commande, extraits, calcul des termes",
+          "style": {
+            "fontFamily": "Palatino, \"Palatino Linotype\", \"Times New Roman\", Times, serif",
+            "fontSize": 40,
+            "fontWeight": 600,
+            "color": "#000000",
+            "textAlign": "left",
+            "verticalAlign": "top",
+            "lineHeight": 1.05,
+            "padding": 0
+          }
+        },
+        {
+          "id": "s9-b",
+          "morphKey": "s9-b",
+          "x": 80,
+          "y": 140,
+          "width": 1760,
+          "height": 850,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 1,
+          "locked": false,
+          "hidden": false,
+          "type": "text",
+          "markdown": "```python\n# tpa/RobotLineFollower.py\n# Gains PID : 2 / 1.70 / 0.035\n# init avant boucle :\nintegral = 0\nprevious_error = 0\nprevious_time = watch.time()\nfiltered_derivative = 0\n\n# boucle PID :\nreflection = self.robot.sensor.getReflection()\nerror = reflection - self.setpoint\ncurrent_time = watch.time()\ndt = max(current_time - previous_time, 1) / 1000.0\nraw_derivative = (error - previous_error) / dt\nfiltered_derivative = (\n    self.derivative_filter * raw_derivative\n    + (1 - self.derivative_filter) * filtered_derivative\n)\nderivative = filtered_derivative\nprevious_error = error\nprevious_time = current_time\nintegral_candidate = integral + error * dt\nintegral_candidate = self._limit(\n    integral_candidate, -self.integral_limit, self.integral_limit\n)\n```",
+          "style": {
+            "fontFamily": "ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
+            "fontSize": 23,
+            "fontWeight": 400,
+            "color": "#000000",
+            "textAlign": "left",
+            "verticalAlign": "top",
+            "lineHeight": 1.27,
+            "padding": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "s10",
+      "title": "Code de la commande — correction des roues",
+      "notes": "Extraits exacts de RobotLineFollower.py et RobotDrive.py ; les signes moteurs tiennent compte du montage et des directions déclarées. Les vitesses moteur individuelles ne sont pas bornées explicitement dans ce code ; borner δ ne garantit pas l’absence de saturation des moteurs. Le CSV journalise time_ms, reflection, error, integral, derivative, steering, mode ; le bouton central arrête la boucle et finally stoppe les moteurs.",
+      "hidden": false,
+      "hidePageNumber": false,
+      "transition": {
+        "type": "none",
+        "durationMs": 0,
+        "easing": "ease-in-out"
+      },
+      "timeline": [],
+      "elements": [
+        {
+          "id": "s10-h",
+          "morphKey": "s10-h",
+          "x": 80,
+          "y": 48,
+          "width": 1760,
+          "height": 64,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 1,
+          "locked": false,
+          "hidden": false,
+          "type": "text",
+          "markdown": "Code de la commande, extraits, correction des roues",
+          "style": {
+            "fontFamily": "Palatino, \"Palatino Linotype\", \"Times New Roman\", Times, serif",
+            "fontSize": 40,
+            "fontWeight": 600,
+            "color": "#000000",
+            "textAlign": "left",
+            "verticalAlign": "top",
+            "lineHeight": 1.05,
+            "padding": 0
+          }
+        },
+        {
+          "id": "s10-b",
+          "morphKey": "s10-b",
+          "x": 80,
+          "y": 140,
+          "width": 1760,
+          "height": 850,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 1,
+          "locked": false,
+          "hidden": false,
+          "type": "text",
+          "markdown": "```python\n# suite boucle pid :\nproportional_derivative = self.kp * error + self.kd * derivative\ncandidate_steering = (\n    proportional_derivative + self.ki * integral_candidate\n)\nif not (\n    abs(candidate_steering) > self.max_steering\n    and candidate_steering * error > 0\n):\n    integral = integral_candidate\nsteering = proportional_derivative + self.ki * integral\nsteering = self._limit(steering, -self.max_steering, self.max_steering)\nself.robot.drive.drive(self.speed, steering)\n\n# RobotDrive.drive : vitesses moteur, steering_gain = 2.0\ncorrection = self.steering_gain * steering\nleft_speed = speed + correction\nright_speed = speed - correction\nself.left.run(-left_speed)\nself.right.run(right_speed)\n\n# Fonction de saturation, RobotLineFollower._limit :\nreturn max(minimum, min(value, maximum))\n```",
+          "style": {
+            "fontFamily": "ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
+            "fontSize": 24,
+            "fontWeight": 400,
+            "color": "#000000",
+            "textAlign": "left",
+            "verticalAlign": "top",
+            "lineHeight": 1.32,
+            "padding": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "s11",
+      "title": "Ce qu’on retient des logs",
+      "notes": "Statistiques arithmétiques sur tous les échantillons, sans retrait du démarrage ni sélection d’un meilleur segment. Reproductibles avec slidesTP1/audit_logs.py. Saturation tapis : 1 point sur 1063 à ±300 ; droite : 23 points sur 342 à ±50. Le bang-bang est par définition toujours à ±200, ce n’est pas un taux de saturation PID.",
+      "hidden": false,
+      "hidePageNumber": false,
+      "transition": {
+        "type": "none",
+        "durationMs": 0,
+        "easing": "ease-in-out"
+      },
+      "timeline": [],
+      "elements": [
+        {
+          "id": "s11-h",
+          "morphKey": "s11-h",
+          "x": 80,
+          "y": 48,
+          "width": 1760,
+          "height": 64,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 1,
+          "locked": false,
+          "hidden": false,
+          "type": "text",
+          "markdown": "Ce qu’on retient des logs",
+          "style": {
+            "fontFamily": "Palatino, \"Palatino Linotype\", \"Times New Roman\", Times, serif",
+            "fontSize": 40,
+            "fontWeight": 600,
+            "color": "#000000",
+            "textAlign": "left",
+            "verticalAlign": "top",
+            "lineHeight": 1.05,
+            "padding": 0
+          }
+        },
+        {
+          "id": "s11-b",
+          "morphKey": "s11-b",
+          "x": 80,
+          "y": 140,
+          "width": 1760,
+          "height": 850,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 1,
+          "locked": false,
+          "hidden": false,
+          "type": "text",
+          "markdown": "Pour comparer l'amplitude des écarts, on prend leur valeur absolue puis on fait la moyenne. Cela évite qu'une erreur à gauche annule une erreur à droite.\n\n| Mesure | Bang-bang | Droite PID | Tapis PID |\n| :--- | ---: | ---: | ---: |\n| Durée de l'enregistrement | 20,8 s | 18,0 s | 21,2 s |\n| Écart moyen en valeur absolue | 29,8 | 7,9 | 20,7 |\n| Plus grand écart en valeur absolue | 45 | 42 | 45 |\n\nCes écarts sont des points de réflexion du capteur, pas des millimètres.\n\nLa droite est l'essai où l'erreur est la plus faible. Sur le tapis, elle reste beaucoup plus grande : le suivi est moins régulier.\n\nLes conditions et les réglages sont différents. On peut décrire ces résultats, mais pas attribuer toute la différence au PID.",
+          "style": {
+            "fontFamily": "Palatino, \"Palatino Linotype\", \"Times New Roman\", Times, serif",
+            "fontSize": 28,
+            "fontWeight": 400,
+            "color": "#000000",
+            "textAlign": "left",
+            "verticalAlign": "top",
+            "lineHeight": 1.32,
+            "padding": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "s12",
+      "title": "Bilan du TP",
+      "notes": "Sujet VA55_A25_TP_1_2 (1).pdf, p.6–8. Sources : logsPIDbetter/bang_bang.csv ; logsTP1/log_pid_STRAIGHT.csv ; logsPIDbetter/suivi_pid_tapis_spir.csv. Aucun fichier circuit 8 ni robot_log de localisation/Kalman n’est utilisé. Les noms de fichiers et les gains ne prouvent pas une mesure physique indépendante.",
+      "hidden": false,
+      "hidePageNumber": false,
+      "transition": {
+        "type": "none",
+        "durationMs": 0,
+        "easing": "ease-in-out"
+      },
+      "timeline": [],
+      "elements": [
+        {
+          "id": "s12-h",
+          "morphKey": "s12-h",
+          "x": 80,
+          "y": 48,
+          "width": 1760,
+          "height": 64,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 1,
+          "locked": false,
+          "hidden": false,
+          "type": "text",
+          "markdown": "Bilan du TP",
+          "style": {
+            "fontFamily": "Palatino, \"Palatino Linotype\", \"Times New Roman\", Times, serif",
+            "fontSize": 40,
+            "fontWeight": 600,
+            "color": "#000000",
+            "textAlign": "left",
+            "verticalAlign": "top",
+            "lineHeight": 1.05,
+            "padding": 0
+          }
+        },
+        {
+          "id": "s12-b",
+          "morphKey": "s12-b",
+          "x": 80,
+          "y": 140,
+          "width": 1760,
+          "height": 850,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 1,
+          "locked": false,
+          "hidden": false,
+          "type": "text",
+          "markdown": "Les logs montrent la différence entre une correction qui bascule d'un côté à l'autre et une correction qui dépend de l'erreur et de son évolution.\n\nSur les logs conservés, la droite reste plus près de la valeur visée que le tapis. Ensuite, réduire l’attente à period_ms = 5 a résolu notre problème de stabilité pendant les essais ; nous n’avons pas sauvegardé les logs correspondants.\n\nNous avions un repère physique à 1 m sur la droite. À la vitesse de consigne de 155 mm/s, cela donne un temps estimé de 6,45 s. Les essais ont été arrêtés manuellement ; nous n’avons pas de chronométrage séparé au passage du repère.\n\nLa droite a aussi été enregistrée avec d'autres gains que le tapis : 1,7 / 0,9 (1,1 côté blanc) / 0,06, contre 2 / 1,70 / 0,035. Nous n'avons donc pas les deux essais avec le réglage définitif demandé.\n\nNous n'avons pas sauvegardé nos meilleurs essais malheureusement. Nous présentons ici ceux dont nous avons gardé les données.\nLes meilleurs essais, battant les autres d'au moins 10 à 20%, étant des temps sur ligne droite et le 8 en 16-16.5 secondes.",
+          "style": {
+            "fontFamily": "Palatino, \"Palatino Linotype\", \"Times New Roman\", Times, serif",
+            "fontSize": 30,
+            "fontWeight": 400,
+            "color": "#000000",
+            "textAlign": "left",
+            "verticalAlign": "top",
+            "lineHeight": 1.32,
+            "padding": 0
+          }
+        }
+      ]
+    }
+  ]
+}
