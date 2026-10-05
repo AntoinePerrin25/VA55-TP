@@ -3,6 +3,7 @@
 import argparse
 import csv
 import os
+import re
 
 
 def read_rows(filename):
@@ -16,13 +17,20 @@ def read_rows(filename):
 def split_rows(rows):
     circuits = [[]]
     orange_active = False
+    previous_circuit = None
     for row in rows:
         color = row.get("color", "").upper()
         is_orange = "ORANGE" in color
-        if is_orange and not orange_active and circuits[-1]:
+        circuit_number = row.get("circuit")
+        circuit_changed = (
+            circuit_number and previous_circuit is not None
+            and circuit_number != previous_circuit
+        )
+        if (is_orange and not orange_active or circuit_changed) and circuits[-1]:
             circuits.append([])
         circuits[-1].append(row)
         orange_active = is_orange
+        previous_circuit = circuit_number or previous_circuit
     return [circuit for circuit in circuits if circuit]
 
 
@@ -87,12 +95,21 @@ def make_svg(circuits, output):
 
 def main():
     parser = argparse.ArgumentParser(description="Découpe et trace les trajectoires EV3")
-    parser.add_argument("log")
+    parser.add_argument("logs", nargs="+")
     parser.add_argument("--output", default=None)
     args = parser.parse_args()
-    rows = read_rows(args.log)
-    circuits = write_circuits(rows, args.log)
-    output = args.output or os.path.splitext(args.log)[0] + "_trajectory.svg"
+    rows = []
+    for filename in args.logs:
+        rows.extend(read_rows(filename))
+    already_split = all(
+        re.match(r"^robot_log_circuit_[0-9]+\.csv$", os.path.basename(filename))
+        for filename in args.logs
+    )
+    if len(args.logs) == 1 and not already_split:
+        circuits = write_circuits(rows, args.logs[0])
+    else:
+        circuits = [read_rows(filename) for filename in args.logs]
+    output = args.output or os.path.splitext(args.logs[0])[0] + "_trajectory.svg"
     make_svg(circuits, output)
     print("{} circuit(s), {} mesure(s) -> {}".format(len(circuits), len(rows), output))
 

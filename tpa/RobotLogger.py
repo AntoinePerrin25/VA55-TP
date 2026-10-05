@@ -1,4 +1,5 @@
 import time
+import os
 
 class RobotLogger:
     def __init__(self, filename="robot_log.csv"):
@@ -14,14 +15,30 @@ class RobotLogger:
         self.circuit = 1
         self.start_time = time.time()
         self.circuit_start_time = time.time()
+        self._remove_previous_circuits()
         self.filename = self._circuit_filename()
         self.file = open(self.filename, "w")
+        self._file_open = True
         self.file.write(
             "time_s;x_mm;y_mm;odometry_heading_deg;gyro_heading_deg;"
             "filtered_heading_deg;distance_mm;speed_mm_s;turn_rate_deg_s;"
             "reflection;color;circuit;lap_time_s;mode\n"
         )
         self.file.flush()
+
+    def _remove_previous_circuits(self):
+        number = 1
+        while number <= 200:
+            filename = "{0}_circuit_{1}{2}".format(
+                self._stem, number, self._extension
+            )
+            if self._directory:
+                filename = self._directory + "/" + filename
+            try:
+                os.remove(filename)
+            except OSError:
+                pass
+            number += 1
 
     def _circuit_filename(self):
         filename = "{0}_circuit_{1}{2}".format(
@@ -37,6 +54,7 @@ class RobotLogger:
         self.circuit_start_time = time.time()
         self.filename = self._circuit_filename()
         self.file = open(self.filename, "w")
+        self._file_open = True
         self.file.write(
             "time_s;x_mm;y_mm;odometry_heading_deg;gyro_heading_deg;"
             "filtered_heading_deg;distance_mm;speed_mm_s;turn_rate_deg_s;"
@@ -48,8 +66,9 @@ class RobotLogger:
         self.circuit_start_time = time.time()
 
     def close(self):
-        if not self.file.closed:
+        if self._file_open:
             self.file.close()
+            self._file_open = False
 
     def log(self, robot_state, mode="odometry"):
         elapsed_time = time.time() - self.start_time

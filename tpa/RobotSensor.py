@@ -3,6 +3,12 @@ from pybricks.parameters import Color, Port
 
 
 REFLECTION_THRESHOLD = 20
+ORANGE_RED_MIN = 40
+ORANGE_RED_MAX = 50
+ORANGE_GREEN_MAX = 20
+ORANGE_BLUE_MAX = 15
+ORANGE_RED_GREEN_RATIO = 2.5
+ORANGE_RED_BLUE_RATIO = 3.0
 
 class RobotSensor:
     def __init__(
@@ -21,18 +27,27 @@ class RobotSensor:
                 self.gyro = None
 
     def getColor(self):
-        measured_color = self.sensor.color()
-        if measured_color == Color.ORANGE:
+        reflection = self.getReflection()
+        if self.is_orange():
             return Color.ORANGE
-        if measured_color == Color.BLACK or self.getReflection() <= self.reflection_threshold:
+        if reflection <= self.reflection_threshold:
             return Color.BLACK
         return Color.RED
 
     def raw_color(self):
-        return self.sensor.color()
+        return self.getColor()
 
     def is_orange(self):
-        return self.raw_color() == Color.ORANGE
+        red, green, blue = self.sensor.rgb()
+        if green == 0 or blue == 0:
+            return False
+        return (
+            ORANGE_RED_MIN <= red <= ORANGE_RED_MAX
+            and green <= ORANGE_GREEN_MAX
+            and blue <= ORANGE_BLUE_MAX
+            and red / green >= ORANGE_RED_GREEN_RATIO
+            and red / blue >= ORANGE_RED_BLUE_RATIO
+        )
 
     def getReflection(self):
         return self.sensor.reflection()

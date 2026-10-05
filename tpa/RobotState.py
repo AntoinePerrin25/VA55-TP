@@ -7,7 +7,10 @@ from RobotLCD import RobotLCD
 from RobotLogger import RobotLogger
 from RobotDrive import RobotDrive
 from RobotSensor import RobotSensor
-from RobotSound import RobotSound
+
+
+ORANGE_CONFIRMATION_SAMPLES = 5
+MIN_CIRCUIT_TIME_MS = 10000
 
 
 class RobotState:
@@ -19,8 +22,6 @@ class RobotState:
         print("RobotState initialized")
         self.LCD = RobotLCD(self.ev3)
         print("RobotLCD initialized")
-        self.sound = RobotSound(self.ev3)
-        print("RobotSound initialized")
         self.sensor = RobotSensor(sensor_port, gyro_port=gyro_port)
         print("RobotSensor initialized")
         self.drive = RobotDrive()
@@ -40,6 +41,8 @@ class RobotState:
         self._measurement_noise = 2.0
         self.current_color = None
         self._orange_active = False
+        self._orange_samples = 0
+        self._circuit_start_ms = self._last_sample_ms
         self._has_logged_sample = False
     def updateLastColor(self, color):
         self.lastColor = color
@@ -70,6 +73,8 @@ class RobotState:
         self._kalman_covariance = [[1.0, 0.0], [0.0, 1.0]]
         self.current_color = None
         self._orange_active = False
+        self._orange_samples = 0
+        self._circuit_start_ms = self._last_sample_ms
         self._has_logged_sample = False
 
     def _kalman_update(self, rate, measurement, dt):
@@ -113,10 +118,16 @@ class RobotState:
         gyro_rate = self.sensor.gyro_rate()
         self.gyro_heading = gyro_angle
         self.current_color = str(self.sensor.raw_color())
-        orange = self.sensor.is_orange()
+        if self.sensor.is_orange():
+            self._orange_samples += 1
+        else:
+            self._orange_samples = 0
+        orange = self._orange_samples >= ORANGE_CONFIRMATION_SAMPLES
         if orange and not self._orange_active:
-            if self._has_logged_sample:
+            circuit_is_long_enough = now - self._circuit_start_ms >= MIN_CIRCUIT_TIME_MS
+            if self._has_logged_sample and circuit_is_long_enough:
                 self.logger.start_new_circuit()
+                self._circuit_start_ms = now
             else:
                 self.logger.reset_circuit_timer()
         self._orange_active = orange
@@ -147,6 +158,7 @@ class RobotState:
             "turn_rate_deg_s": turn_rate,
         })
         self.logger.log(self, mode)
+        self.updateLCD("Circuit " + str(self.logger.circuit))
         self._has_logged_sample = True
         return self.pose
 
