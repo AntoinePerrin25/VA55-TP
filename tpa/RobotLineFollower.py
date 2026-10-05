@@ -109,7 +109,7 @@ class RobotLineFollower:
                 steering = proportional_derivative + self.ki * integral
                 steering = self._limit(steering, -self.max_steering, self.max_steering)
                 self.robot.drive.drive(self.speed, steering)
-                self.robot.update_localization(localization_mode)
+                self.robot.update_localization(localization_mode, reflection=reflection)
                 log.write("{0},{1},{2},{3},{4},{5},pid\n".format(
                     watch.time(), reflection, error, integral, derivative, steering
                 ))

@@ -22,7 +22,7 @@ class RobotLogger:
         self.file.write(
             "time_s;x_mm;y_mm;odometry_heading_deg;gyro_heading_deg;"
             "filtered_heading_deg;distance_mm;speed_mm_s;turn_rate_deg_s;"
-            "reflection;color;circuit;lap_time_s;mode\n"
+            "reflection;circuit;lap_time_s;mode\n"
         )
         self.file.flush()
 
@@ -58,7 +58,7 @@ class RobotLogger:
         self.file.write(
             "time_s;x_mm;y_mm;odometry_heading_deg;gyro_heading_deg;"
             "filtered_heading_deg;distance_mm;speed_mm_s;turn_rate_deg_s;"
-            "reflection;color;circuit;lap_time_s;mode\n"
+            "reflection;circuit;lap_time_s;mode\n"
         )
         self.file.flush()
 
@@ -70,19 +70,18 @@ class RobotLogger:
             self.file.close()
             self._file_open = False
 
-    def log(self, robot_state, mode="odometry"):
+    def log(self, robot_state, mode="odometry", reflection=None):
         elapsed_time = time.time() - self.start_time
         lap_time = time.time() - self.circuit_start_time
         pose = robot_state.pose
         drive_state = robot_state.drive.state()
         gyro_heading = robot_state.gyro_heading
-        reflection = robot_state.sensor.getReflection()
-        color = robot_state.current_color
+        if reflection is None:
+            reflection = robot_state.sensor.getReflection()
         values = (
             elapsed_time, pose[0], pose[1], robot_state.odometry_heading,
             "" if gyro_heading is None else gyro_heading,
             pose[2], drive_state[0], drive_state[1], drive_state[3],
-            reflection, color, self.circuit, lap_time, mode,
+            reflection, self.circuit, lap_time, mode,
         )
         self.file.write(";".join(str(value) for value in values) + "\n")
-        self.file.flush()

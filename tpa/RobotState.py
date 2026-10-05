@@ -9,12 +9,8 @@ from RobotDrive import RobotDrive
 from RobotSensor import RobotSensor
 
 
-ORANGE_CONFIRMATION_SAMPLES = 5
-MIN_CIRCUIT_TIME_MS = 10000
-
-
 class RobotState:
-    def __init__(self, sensor_port=Port.S3, gyro_port=Port.S2, sample_period_ms=100):
+    def __init__(self, sensor_port=Port.S1, gyro_port=Port.S3, sample_period_ms=100):
         self.ev3 = EV3Brick()
         self.lastColor = None
         self.lastDistance = -1
@@ -39,11 +35,8 @@ class RobotState:
         self._kalman_covariance = [[1.0, 0.0], [0.0, 1.0]]
         self._process_noise = 0.05
         self._measurement_noise = 2.0
-        self.current_color = None
-        self._orange_active = False
-        self._orange_samples = 0
-        self._circuit_start_ms = self._last_sample_ms
-        self._has_logged_sample = False
+        self._last_gyro_angle = None
+
     def updateLastColor(self, color):
         self.lastColor = color
 
@@ -71,11 +64,7 @@ class RobotState:
         self._kalman_angle = 0.0
         self._kalman_bias = 0.0
         self._kalman_covariance = [[1.0, 0.0], [0.0, 1.0]]
-        self.current_color = None
-        self._orange_active = False
-        self._orange_samples = 0
-        self._circuit_start_ms = self._last_sample_ms
-        self._has_logged_sample = False
+        self._last_gyro_angle = None
 
     def _kalman_update(self, rate, measurement, dt):
         angle = self._kalman_angle
@@ -104,7 +93,7 @@ class RobotState:
         ]
         return self._kalman_angle
 
-    def update_localization(self, mode="kalman", force=False):
+    def update_localization(self, mode="kalman", force=False, reflection=None):
         now = self.watch.time()
         dt = max(now - self._last_sample_ms, 1) / 1000.0
         if not force and now - self._last_sample_ms < self.sample_period_ms:
@@ -115,22 +104,11 @@ class RobotState:
         self._last_distance = distance
         self.odometry_heading = odometry_angle
         gyro_angle = self.sensor.gyro_angle()
-        gyro_rate = self.sensor.gyro_rate()
+        gyro_rate = None
+        if gyro_angle is not None and self._last_gyro_angle is not None:
+            gyro_rate = (gyro_angle - self._last_gyro_angle) / dt
+        self._last_gyro_angle = gyro_angle
         self.gyro_heading = gyro_angle
-        self.current_color = str(self.sensor.raw_color())
-        if self.sensor.is_orange():
-            self._orange_samples += 1
-        else:
-            self._orange_samples = 0
-        orange = self._orange_samples >= ORANGE_CONFIRMATION_SAMPLES
-        if orange and not self._orange_active:
-            circuit_is_long_enough = now - self._circuit_start_ms >= MIN_CIRCUIT_TIME_MS
-            if self._has_logged_sample and circuit_is_long_enough:
-                self.logger.start_new_circuit()
-                self._circuit_start_ms = now
-            else:
-                self.logger.reset_circuit_timer()
-        self._orange_active = orange
         if mode == "gyro" and gyro_angle is not None:
             heading = gyro_angle
         elif mode == "kalman":
@@ -157,9 +135,7 @@ class RobotState:
             "speed_mm_s": speed,
             "turn_rate_deg_s": turn_rate,
         })
-        self.logger.log(self, mode)
-        self.updateLCD("Circuit " + str(self.logger.circuit))
-        self._has_logged_sample = True
+        self.logger.log(self, mode, reflection)
         return self.pose
 
     def get_pose(self):
