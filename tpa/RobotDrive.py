@@ -5,7 +5,7 @@ from math import pi
 
 
 WHEEL_DIAMETER = 56
-AXLE_TRACK = 114
+AXLE_TRACK = 112
 
 
 class RobotDrive:
@@ -27,6 +27,8 @@ class RobotDrive:
         self._last_state_time = None
         self._last_distance = 0.0
         self._last_angle = 0.0
+        self.command_speed_mm_s = 0.0
+        self.command_turn_rate_deg_s = 0.0
 
     def drive(self, speed, steering=0):
         correction = self.steering_gain * steering
@@ -35,6 +37,12 @@ class RobotDrive:
 
         self.left.run(-left_speed)
         self.right.run(right_speed)
+        left_mm_s = left_speed * self._wheel_circumference / 360.0
+        right_mm_s = right_speed * self._wheel_circumference / 360.0
+        self.command_speed_mm_s = (left_mm_s + right_mm_s) / 2.0
+        self.command_turn_rate_deg_s = (
+            (right_mm_s - left_mm_s) / self.axle_track * 180.0 / pi
+        )
 
     def forward(self, speed):
         self.drive(speed)

@@ -44,11 +44,16 @@ class RobotLineFollower:
         threshold = self.robot.sensor.reflection_threshold
 
         try:
-            while Button.CENTER not in self.robot.ev3.buttons.pressed():
+            while True:
+                pressed = self.robot.ev3.buttons.pressed()
+                if Button.CENTER in pressed:
+                    break
                 reflection = self.robot.sensor.getReflection()
                 error = reflection - self.setpoint
                 steering = -self.max_steering if reflection <= threshold else self.max_steering
                 self.robot.drive.drive(self.speed, steering)
+                self.robot.note_command()
+                self.robot.update_localization("odometry", reflection=reflection)
                 log.write("{0},{1},{2},0,0,{3},bang_bang\n".format(
                     watch.time(), reflection, error, steering
                 ))
@@ -73,9 +78,13 @@ class RobotLineFollower:
         if target_distance_mm is not None:
             self.robot.drive.reset_distance()
         self.robot.reset_localization()
+        self.robot.update_localization(localization_mode, force=True, reflection=0)
 
         try:
-            while Button.CENTER not in self.robot.ev3.buttons.pressed():
+            while True:
+                pressed = self.robot.ev3.buttons.pressed()
+                if Button.CENTER in pressed:
+                    break
                 if (
                     target_distance_mm is not None
                     and self.robot.drive.distance_mm() >= target_distance_mm
@@ -109,6 +118,7 @@ class RobotLineFollower:
                 steering = proportional_derivative + self.ki * integral
                 steering = self._limit(steering, -self.max_steering, self.max_steering)
                 self.robot.drive.drive(self.speed, steering)
+                self.robot.note_command()
                 self.robot.update_localization(localization_mode, reflection=reflection)
                 log.write("{0},{1},{2},{3},{4},{5},pid\n".format(
                     watch.time(), reflection, error, integral, derivative, steering

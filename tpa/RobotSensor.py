@@ -25,7 +25,8 @@ class RobotSensor:
         return self.sensor.reflection()
 
     def gyro_angle(self):
-        return None if self.gyro is None else self.gyro.angle()
+        # Le gyro brut augmente dans l'autre sens que les moteurs.
+        return None if self.gyro is None else -self.gyro.angle()
 
     def reset_gyro(self):
         if self.gyro is not None:

@@ -1,0 +1,622 @@
+{
+  "schemaVersion": 1,
+  "id": "va55-tp2-kalman",
+  "metadata": {
+    "title": "VA55 — TP2, filtre de Kalman",
+    "author": "PERRIN Antoine, BEAUJARD Traïan",
+    "description": "Du suivi de ligne à la position : plusieurs tours, D et V, droite affine, Kalman."
+  },
+  "size": {
+    "width": 1920,
+    "height": 1080
+  },
+  "theme": {
+    "background": "#ffffff",
+    "foreground": "#000000",
+    "accent": "#000000",
+    "fontFamily": "Palatino, \"Palatino Linotype\", \"Times New Roman\", Times, serif"
+  },
+  "pageNumbers": {
+    "enabled": true,
+    "color": "#000000",
+    "fontSize": 22
+  },
+  "layouts": {},
+  "slides": [
+    {
+      "id": "s1",
+      "title": "Titre",
+      "notes": "Compte rendu du TP Kalman, même forme que le TP1.",
+      "hidden": false,
+      "hidePageNumber": false,
+      "transition": {
+        "type": "none",
+        "durationMs": 0,
+        "easing": "ease-in-out"
+      },
+      "timeline": [],
+      "elements": [
+        {
+          "id": "s1-title",
+          "morphKey": "s1-title",
+          "x": 120,
+          "y": 300,
+          "width": 1680,
+          "height": 90,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 1,
+          "locked": false,
+          "hidden": false,
+          "type": "text",
+          "markdown": "VA55 - TP2 rendu",
+          "style": {
+            "fontFamily": "Palatino, \"Palatino Linotype\", \"Times New Roman\", Times, serif",
+            "fontSize": 64,
+            "fontWeight": 600,
+            "color": "#000000",
+            "textAlign": "center",
+            "verticalAlign": "top",
+            "lineHeight": 1.05,
+            "padding": 0
+          }
+        },
+        {
+          "id": "s1-sub",
+          "morphKey": "s1-sub",
+          "x": 200,
+          "y": 420,
+          "width": 1520,
+          "height": 220,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 1,
+          "locked": false,
+          "hidden": false,
+          "type": "text",
+          "markdown": "PERRIN Antoine, BEAUJARD Traïan\n\nOù est le robot quand il refait le huit ?",
+          "style": {
+            "fontFamily": "Palatino, \"Palatino Linotype\", \"Times New Roman\", Times, serif",
+            "fontSize": 32,
+            "fontWeight": 400,
+            "color": "#000000",
+            "textAlign": "center",
+            "verticalAlign": "top",
+            "lineHeight": 1.3,
+            "padding": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "s2",
+      "title": "Pourquoi quatre tours",
+      "notes": "Odométrie seule, trajectoire_2.csv. Tour 1 fermeture 31 mm. Tours 2 et 3 : 383 mm puis 665 mm de l'origine.",
+      "hidden": false,
+      "hidePageNumber": false,
+      "transition": {
+        "type": "none",
+        "durationMs": 0,
+        "easing": "ease-in-out"
+      },
+      "timeline": [],
+      "elements": [
+        {
+          "id": "s2-h",
+          "morphKey": "s2-h",
+          "x": 44,
+          "y": 28,
+          "width": 913.6,
+          "height": 78,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 1,
+          "locked": false,
+          "hidden": false,
+          "type": "text",
+          "markdown": "Context",
+          "style": {
+            "fontFamily": "Palatino, \"Palatino Linotype\", \"Times New Roman\", Times, serif",
+            "fontSize": 34,
+            "fontWeight": 600,
+            "color": "#000000",
+            "textAlign": "left",
+            "verticalAlign": "top",
+            "lineHeight": 1.12,
+            "padding": 0
+          }
+        },
+        {
+          "id": "s2-b",
+          "morphKey": "s2-b",
+          "x": 44,
+          "y": 116,
+          "width": 913.6,
+          "height": 880,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 1,
+          "locked": false,
+          "hidden": false,
+          "type": "text",
+          "markdown": "Le TP1 faisait suivre la ligne. Ici le robot refait le même huit, et la question est de savoir si la position calculée revient, elle aussi, au point de départ.\n\nUn seul tour peut se refermer sans que le calcul soit juste. Le sujet demande d'en enchaîner plusieurs : une erreur de cap s'ajoute, et le tour suivant ne retombe plus sur le précédent.\n\nOn en a fait quatre, sur 114,5 s. Les trois premiers reviennent au départ du circuit. Le quatrième sort de la ligne et s'arrête en bas du huit (c'était un bug mais cela semblait sympe de garder la traj de la dérive du robot). On le garde dans les figures : c'est la suite de la dérive, et les roues la suivent.\n\nLa figure ne montre encore que les moteurs. Une couleur par tour, le point noir est le départ. Le violet se ferme. Le bleu vert, puis l'orange, partent vers la droite. Le rouge continue, et s'arrête avant d'avoir bouclé.",
+          "style": {
+            "fontFamily": "Palatino, \"Palatino Linotype\", \"Times New Roman\", Times, serif",
+            "fontSize": 24,
+            "fontWeight": 400,
+            "color": "#000000",
+            "textAlign": "left",
+            "verticalAlign": "top",
+            "lineHeight": 1.28,
+            "padding": 0
+          }
+        },
+        {
+          "id": "s2-img",
+          "morphKey": "s2-img",
+          "x": 989.6,
+          "y": 32,
+          "width": 902.4,
+          "height": 1000,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 0,
+          "locked": false,
+          "hidden": false,
+          "alt": "Odométrie des quatre tours, une couleur par tour.",
+          "type": "image",
+          "src": "plots/rapport_moteurs.png",
+          "storage": "linked",
+          "crop": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          },
+          "borderRadius": 0,
+          "edgeFade": 0,
+          "border": {
+            "width": 0,
+            "color": "transparent"
+          },
+          "lockAspectRatio": true,
+          "aspectRatio": 0.9024390243902439
+        }
+      ]
+    },
+    {
+      "id": "s3",
+      "title": "Les quatre calculs",
+      "notes": "Fin du tour 3 : commande 515, odométrie 665, gyro 276, Kalman 292 mm. Distances totales 22373 et 22316 mm.",
+      "hidden": false,
+      "hidePageNumber": false,
+      "transition": {
+        "type": "none",
+        "durationMs": 0,
+        "easing": "ease-in-out"
+      },
+      "timeline": [],
+      "elements": [
+        {
+          "id": "s3-h",
+          "morphKey": "s3-h",
+          "x": 44,
+          "y": 28,
+          "width": 860.4,
+          "height": 78,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 1,
+          "locked": false,
+          "hidden": false,
+          "type": "text",
+          "markdown": "Les quatre calculs",
+          "style": {
+            "fontFamily": "Palatino, \"Palatino Linotype\", \"Times New Roman\", Times, serif",
+            "fontSize": 34,
+            "fontWeight": 600,
+            "color": "#000000",
+            "textAlign": "left",
+            "verticalAlign": "top",
+            "lineHeight": 1.12,
+            "padding": 0
+          }
+        },
+        {
+          "id": "s3-b",
+          "morphKey": "s3-b",
+          "x": 44,
+          "y": 118,
+          "width": 860.4,
+          "height": 880,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 1,
+          "locked": false,
+          "hidden": false,
+          "type": "text",
+          "markdown": "Le sujet en demande trois, toutes les 0,1 s. Kalman est le quatrième. On le nomme ici, on l'ouvrira une fois les trois autres lus.\n\nEn haut à gauche, la commande : la vitesse et la rotation envoyées aux moteurs. C'est le trajet demandé.\n\nEn haut à droite, les moteurs : distance et cap de state(), donc ce que les codeurs ont mesuré.\n\nEn bas à gauche, le gyro. Il donne un angle, pas des mètres. On lui associe la distance de la commande.\n\nEn bas à droite, Kalman : la distance des roues, et un cap filtré. Le trait clair est le tour 1, le trait foncé le tour 4.\n\nAprès trois tours, l'écart au départ est de 515 mm pour la commande, 665 mm pour les moteurs, 276 mm pour le gyro et 292 mm pour Kalman. D = 56 mm passe des degrés de roue aux millimètres. V = 114 mm passe de l'écart entre les roues à un angle. Commande et moteurs font 22,3 m, à 57 mm près : D est déjà d'accord. Ce qui ouvre les tours, c'est le cap.",
+          "style": {
+            "fontFamily": "Palatino, \"Palatino Linotype\", \"Times New Roman\", Times, serif",
+            "fontSize": 24,
+            "fontWeight": 400,
+            "color": "#000000",
+            "textAlign": "left",
+            "verticalAlign": "top",
+            "lineHeight": 1.28,
+            "padding": 0
+          }
+        },
+        {
+          "id": "s3-img",
+          "morphKey": "s3-img",
+          "x": 936.4,
+          "y": 32,
+          "width": 955.6,
+          "height": 1000,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 0,
+          "locked": false,
+          "hidden": false,
+          "alt": "Quatre estimateurs du même passage. Trait clair : tour 1. Trait foncé : tour 4.",
+          "type": "image",
+          "src": "plots/rapport_methodes.png",
+          "storage": "linked",
+          "crop": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          },
+          "borderRadius": 0,
+          "edgeFade": 0,
+          "border": {
+            "width": 0,
+            "color": "transparent"
+          },
+          "lockAspectRatio": true,
+          "aspectRatio": 0.9555555555555556
+        }
+      ]
+    },
+    {
+      "id": "s4",
+      "title": "Trois essais, comme demandé",
+      "notes": "Rejeu hors ligne. Fin du tour 3 : 665, 632, 294, puis 75 mm.",
+      "hidden": false,
+      "hidePageNumber": false,
+      "transition": {
+        "type": "none",
+        "durationMs": 0,
+        "easing": "ease-in-out"
+      },
+      "timeline": [],
+      "elements": [
+        {
+          "id": "s4-h",
+          "morphKey": "s4-h",
+          "x": 44,
+          "y": 28,
+          "width": 860.4,
+          "height": 78,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 1,
+          "locked": false,
+          "hidden": false,
+          "type": "text",
+          "markdown": "Trois essais, comme demandé",
+          "style": {
+            "fontFamily": "Palatino, \"Palatino Linotype\", \"Times New Roman\", Times, serif",
+            "fontSize": 34,
+            "fontWeight": 600,
+            "color": "#000000",
+            "textAlign": "left",
+            "verticalAlign": "top",
+            "lineHeight": 1.12,
+            "padding": 0
+          }
+        },
+        {
+          "id": "s4-b",
+          "morphKey": "s4-b",
+          "x": 44,
+          "y": 118,
+          "width": 860.4,
+          "height": 880,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 1,
+          "locked": false,
+          "hidden": false,
+          "type": "text",
+          "markdown": "Le sujet attribue l'écart des tours aux mesures, et à D et V. Il demande trois essais, comparés au résultat. On peut changer D et V dans le code et relancer le robot, ou corriger l'enregistrement. On n'a qu'un passage sur le tapis. On le rejoue.\n\nEssai 1, en haut à gauche : D = 56 mm et V = 114 mm. Fin du tour 3 à 665 mm.\n\nEssai 2 : on ne touche que la distance, × 0,95. On passe à 632 mm. Le diamètre n'explique pas l'ouverture.\n\nEssai 3 : on ne touche que le cap, × 1,05. On tombe à 294 mm. C'est V, pas D.\n\nEn bas à droite, le couple qui rapproche le plus le tour 3 : distance × 0,90 et cap × 1,03, soit 75 mm. Le huit rétrécit, et le tour 1, fermé à 31 mm avec les valeurs d'origine, s'ouvre. Une échelle fixe ne suit pas une dérive qui grossit d'un tour à l'autre.",
+          "style": {
+            "fontFamily": "Palatino, \"Palatino Linotype\", \"Times New Roman\", Times, serif",
+            "fontSize": 24,
+            "fontWeight": 400,
+            "color": "#000000",
+            "textAlign": "left",
+            "verticalAlign": "top",
+            "lineHeight": 1.28,
+            "padding": 0
+          }
+        },
+        {
+          "id": "s4-img",
+          "morphKey": "s4-img",
+          "x": 936.4,
+          "y": 32,
+          "width": 955.6,
+          "height": 1000,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 0,
+          "locked": false,
+          "hidden": false,
+          "alt": "Quatre rejeux de l'odométrie. Le nombre est l'écart au départ à la fin du tour 3.",
+          "type": "image",
+          "src": "plots/rapport_calibration.png",
+          "storage": "linked",
+          "crop": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          },
+          "borderRadius": 0,
+          "edgeFade": 0,
+          "border": {
+            "width": 0,
+            "color": "transparent"
+          },
+          "lockAspectRatio": true,
+          "aspectRatio": 0.9555555555555556
+        }
+      ]
+    },
+    {
+      "id": "s5",
+      "title": "La droite du cours",
+      "notes": "Ajustement sur l'origine et les fins de tours 1 à 3. x = 0,0399 d − 95,3. y = −0,0156 d + 38,5.",
+      "hidden": false,
+      "hidePageNumber": false,
+      "transition": {
+        "type": "none",
+        "durationMs": 0,
+        "easing": "ease-in-out"
+      },
+      "timeline": [],
+      "elements": [
+        {
+          "id": "s5-h",
+          "morphKey": "s5-h",
+          "x": 44,
+          "y": 28,
+          "width": 941,
+          "height": 78,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 1,
+          "locked": false,
+          "hidden": false,
+          "type": "text",
+          "markdown": "La droite du cours",
+          "style": {
+            "fontFamily": "Palatino, \"Palatino Linotype\", \"Times New Roman\", Times, serif",
+            "fontSize": 34,
+            "fontWeight": 600,
+            "color": "#000000",
+            "textAlign": "left",
+            "verticalAlign": "top",
+            "lineHeight": 1.12,
+            "padding": 0
+          }
+        },
+        {
+          "id": "s5-b",
+          "morphKey": "s5-b",
+          "x": 44,
+          "y": 118,
+          "width": 941,
+          "height": 880,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 1,
+          "locked": false,
+          "hidden": false,
+          "type": "text",
+          "markdown": "On reste sur les moteurs. À la fin des tours 1, 2 et 3, le robot est physiquement au départ. L'odométrie, elle, est ailleurs. On note ce x et ce y, avec l'origine, et on les trace selon la distance parcourue.\n\nLes points noirs sont ces retours. Ils suivent une droite. Le trait gris, autour, c'est le huit lui-même : il oscille, la dérive est la pente.\n\nx = 0,040 d − 95 mm\n\ny = −0,016 d + 39 mm\n\nQuarante millimètres de dérive en x par mètre parcouru, seize en y. On retire cette droite à toute la courbe. En bas, le gris est le tracé d'origine, le noir est le tracé recadré. Les tours 2 et 3 arrivent à 42 mm et 51 mm du point corrigé. Le départ réel s'en écarte de 103 mm : la pente est tirée par les tours déjà partis, elle déplace aussi le début. On mesure la dérive. On ne trouve pas un nouveau diamètre.",
+          "style": {
+            "fontFamily": "Palatino, \"Palatino Linotype\", \"Times New Roman\", Times, serif",
+            "fontSize": 24,
+            "fontWeight": 400,
+            "color": "#000000",
+            "textAlign": "left",
+            "verticalAlign": "top",
+            "lineHeight": 1.28,
+            "padding": 0
+          }
+        },
+        {
+          "id": "s5-img",
+          "morphKey": "s5-img",
+          "x": 1017,
+          "y": 32,
+          "width": 875,
+          "height": 1000,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 0,
+          "locked": false,
+          "hidden": false,
+          "alt": "Droites affine sur x et y, puis odométrie avant et après soustraction.",
+          "type": "image",
+          "src": "plots/rapport_affine.png",
+          "storage": "linked",
+          "crop": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          },
+          "borderRadius": 0,
+          "edgeFade": 0,
+          "border": {
+            "width": 0,
+            "color": "transparent"
+          },
+          "lockAspectRatio": true,
+          "aspectRatio": 0.875
+        }
+      ]
+    },
+    {
+      "id": "s6",
+      "title": "Ensuite, Kalman",
+      "notes": "HeadingKalman : prédiction par le taux odométrique, mesure par l'angle gyro. Écart moyen Kalman–gyro 1 deg, Kalman–moteurs 25 deg.",
+      "hidden": false,
+      "hidePageNumber": false,
+      "transition": {
+        "type": "none",
+        "durationMs": 0,
+        "easing": "ease-in-out"
+      },
+      "timeline": [],
+      "elements": [
+        {
+          "id": "s6-h",
+          "morphKey": "s6-h",
+          "x": 44,
+          "y": 28,
+          "width": 700,
+          "height": 70,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 1,
+          "locked": false,
+          "hidden": false,
+          "type": "text",
+          "markdown": "Ensuite, Kalman",
+          "style": {
+            "fontFamily": "Palatino, \"Palatino Linotype\", \"Times New Roman\", Times, serif",
+            "fontSize": 34,
+            "fontWeight": 600,
+            "color": "#000000",
+            "textAlign": "left",
+            "verticalAlign": "top",
+            "lineHeight": 1.12,
+            "padding": 0
+          }
+        },
+        {
+          "id": "s6-b",
+          "morphKey": "s6-b",
+          "x": 44,
+          "y": 108,
+          "width": 700,
+          "height": 250,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 1,
+          "locked": false,
+          "hidden": false,
+          "type": "text",
+          "markdown": "Le filtre ne change ni D ni V. Il ne corrige que l'angle. Toutes les 0,1 s, le cap avance avec la rotation des roues, puis il est tiré vers l'angle du gyro. La distance reste celle des moteurs.",
+          "style": {
+            "fontFamily": "Palatino, \"Palatino Linotype\", \"Times New Roman\", Times, serif",
+            "fontSize": 24,
+            "fontWeight": 400,
+            "color": "#000000",
+            "textAlign": "left",
+            "verticalAlign": "top",
+            "lineHeight": 1.28,
+            "padding": 0
+          }
+        },
+        {
+          "id": "s6-code",
+          "morphKey": "s6-code",
+          "x": 44,
+          "y": 370,
+          "width": 700,
+          "height": 210,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 1,
+          "locked": false,
+          "hidden": false,
+          "type": "text",
+          "markdown": "```python\nangle += turn_rate * dt\nvariance += q * dt\ninnovation = gyro - angle\ngain = variance / (variance + r)\nangle += gain * innovation\n```",
+          "style": {
+            "fontFamily": "ui-monospace, \"SF Mono\", Menlo, Consolas, monospace",
+            "fontSize": 22,
+            "fontWeight": 400,
+            "color": "#000000",
+            "textAlign": "left",
+            "verticalAlign": "top",
+            "lineHeight": 1.28,
+            "padding": 0
+          }
+        },
+        {
+          "id": "s6-c",
+          "morphKey": "s6-c",
+          "x": 44,
+          "y": 600,
+          "width": 700,
+          "height": 420,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 1,
+          "locked": false,
+          "hidden": false,
+          "type": "text",
+          "markdown": "Q = 25 deg²/s : on se méfie du taux lu sur les roues. R = 4 deg² : on fait plus confiance au gyro. Le gain vaut environ 0,55.\n\nÀ gauche, les moteurs : les tours glissent. À droite, après le filtre, les tours 1 à 3 se recouvrent. Le rouge coupe le bas du huit : le robot a quitté la ligne, et Kalman suit le gyro.\n\nUn tour, les moteurs se ferment à 31 mm. Trois tours, ils en sont à 665 mm, Kalman à 292 mm. Après la sortie, les deux s'arrêtent où le robot s'est arrêté.",
+          "style": {
+            "fontFamily": "Palatino, \"Palatino Linotype\", \"Times New Roman\", Times, serif",
+            "fontSize": 24,
+            "fontWeight": 400,
+            "color": "#000000",
+            "textAlign": "left",
+            "verticalAlign": "top",
+            "lineHeight": 1.28,
+            "padding": 0
+          }
+        },
+        {
+          "id": "s6-img",
+          "morphKey": "s6-img",
+          "x": 768,
+          "y": 228,
+          "width": 1124,
+          "height": 624,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 0,
+          "locked": false,
+          "hidden": false,
+          "alt": "À gauche les moteurs, à droite Kalman, une couleur par tour.",
+          "type": "image",
+          "src": "plots/rapport_comparaison.png",
+          "storage": "linked",
+          "crop": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          },
+          "borderRadius": 0,
+          "edgeFade": 0,
+          "border": {
+            "width": 0,
+            "color": "transparent"
+          },
+          "lockAspectRatio": true,
+          "aspectRatio": 1.8028
+        }
+      ]
+    }
+  ]
+}
