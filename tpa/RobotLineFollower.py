@@ -29,6 +29,17 @@ class RobotLineFollower:
         self.max_steering = max_steering
         self.integral_limit = integral_limit
         self.derivative_filter = derivative_filter
+        self.intersection = None
+
+    def set_intersection(self, intersection):
+        self.intersection = intersection
+
+    def _command(self, speed, steering):
+        if self.intersection is not None:
+            speed = self.intersection.limit(speed)
+        if speed == 0:
+            steering = 0
+        self.robot.drive.drive(speed, steering)
 
     def _limit(self, value, minimum, maximum):
         return max(minimum, min(value, maximum))
@@ -51,7 +62,7 @@ class RobotLineFollower:
                 reflection = self.robot.sensor.getReflection()
                 error = reflection - self.setpoint
                 steering = -self.max_steering if reflection <= threshold else self.max_steering
-                self.robot.drive.drive(self.speed, steering)
+                self._command(self.speed, steering)
                 self.robot.note_command()
                 self.robot.update_localization("odometry", reflection=reflection)
                 log.write("{0},{1},{2},0,0,{3},bang_bang\n".format(
@@ -60,6 +71,8 @@ class RobotLineFollower:
                 wait(self.period_ms)
         finally:
             self.robot.drive.stop()
+            if self.intersection is not None:
+                self.intersection.close()
             self.robot.close()
             log.close()
 
@@ -117,7 +130,7 @@ class RobotLineFollower:
                     integral = integral_candidate
                 steering = proportional_derivative + self.ki * integral
                 steering = self._limit(steering, -self.max_steering, self.max_steering)
-                self.robot.drive.drive(self.speed, steering)
+                self._command(self.speed, steering)
                 self.robot.note_command()
                 self.robot.update_localization(localization_mode, reflection=reflection)
                 log.write("{0},{1},{2},{3},{4},{5},pid\n".format(
@@ -126,5 +139,7 @@ class RobotLineFollower:
                 wait(self.period_ms)
         finally:
             self.robot.drive.stop()
+            if self.intersection is not None:
+                self.intersection.close()
             self.robot.close()
             log.close()

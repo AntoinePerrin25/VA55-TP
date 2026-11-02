@@ -49,13 +49,21 @@ class CapteurDistance(object):
         raise OSError("pas de capteur")
 
     def distance(self):
-        """ 0–100 conversion en 0–700 mm."""
-        raw = self._sensor.distance()
-
-        # TODO: SOMETIMES GET 2550 OR TOO BIG VALUE, NEED FIX
+        """Millimètres devant le robot. None si rien n'est vu ou si la mesure est absurde."""
+        try:
+            raw = self._sensor.distance()
+        except Exception:
+            return None
+        if raw is None:
+            return None
         if self.kind == TYPE_IR:
-            return int(raw * IR_MM_PER_UNIT)
-        return raw
+            mm = int(raw * IR_MM_PER_UNIT)
+        else:
+            mm = raw
+        # 2550 est la valeur d'erreur de l'ultrason, pas un obstacle.
+        if mm <= 0 or mm >= 2500:
+            return None
+        return int(mm)
 
 
 if __name__ == "__main__":

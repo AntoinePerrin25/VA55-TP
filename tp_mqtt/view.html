@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <title>Huit — feu coopératif</title>
+  <style>
+    body { margin: 0; font: 16px/1.4 Palatino, "Palatino Linotype", serif; color: #1c1c1c; background: #f4f1ea; }
+    main { display: grid; grid-template-columns: 1fr 320px; min-height: 100vh; }
+    canvas { width: 100%; height: 100vh; background: #fbfaf6; }
+    aside { padding: 24px 20px; border-left: 1px solid #ddd4c4; }
+    h1 { font-size: 22px; font-weight: 600; margin: 0 0 8px; }
+    p { margin: 0 0 16px; }
+    form { display: flex; flex-direction: column; gap: 8px; margin: 0 0 16px; }
+    label { font-size: 14px; color: #6d655a; }
+    input, button { font: inherit; }
+    input { width: 100%; box-sizing: border-box; padding: 6px 8px; }
+    button { padding: 8px 10px; background: #1c1c1c; color: #fbfaf6; border: 0; }
+    .error { color: #9a3b2f; min-height: 1.2em; font-size: 14px; }
+    .lamp { display: flex; gap: 10px; margin: 12px 0 20px; }
+    .lamp span { width: 28px; height: 28px; border-radius: 50%; background: #d9d3c7; display: inline-block; }
+    .lamp .on-red { background: #c0392b; }
+    .lamp .on-green { background: #1e8f4a; }
+    .robot { margin: 0 0 12px; }
+    .muted { color: #6d655a; font-size: 14px; }
+  </style>
+</head>
+<body>
+<main>
+  <canvas id="track"></canvas>
+  <aside>
+    <h1>Feu du croisement</h1>
+    <p id="phase" class="muted">en attente du contrôleur</p>
+    <div class="lamp" aria-hidden="true">
+      <span id="lamp-green"></span>
+      <span id="lamp-red"></span>
+    </div>
+    <p class="muted">Un seul huit, le même sens. Le rouge ne s'allume que si un robot est dans le disque. Le capteur garde 280 mm avec celui de devant.</p>
+    <form id="add-robot">
+      <label for="speed">Vitesse du nouveau robot (mm/s)</label>
+      <input id="speed" type="number" min="40" max="500" value="280">
+      <button type="submit">Ajouter un robot</button>
+      <p id="add-error" class="error"></p>
+    </form>
+    <div id="robots"></div>
+  </aside>
+</main>
+<script>
+const canvas = document.getElementById("track");
+const ctx = canvas.getContext("2d");
+let scene = null;
+
+const COLORS = ["#1f4e79", "#8a4b08", "#1e6b45", "#7a2f6b", "#9a3b2f", "#3d4f8a"];
+
+function resize() {
+  canvas.width = canvas.clientWidth * devicePixelRatio;
+  canvas.height = canvas.clientHeight * devicePixelRatio;
+  draw();
+}
+window.addEventListener("resize", resize);
+
+function bounds() {
+  const pts = scene.loops.flatMap((loop) => loop.points);
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const [x, y] of pts) {
+    minX = Math.min(minX, x); minY = Math.min(minY, y);
+    maxX = Math.max(maxX, x); maxY = Math.max(maxY, y);
+  }
+  return { minX, minY, maxX, maxY };
+}
+
+function draw() {
+  if (!scene) return;
+  const box = bounds();
+  const pad = 80;
+  const width = canvas.width;
+  const height = canvas.height;
+  const scale = Math.min(
+    (width - pad * 2) / (box.maxX - box.minX),
+    (height - pad * 2) / (box.maxY - box.minY)
+  );
+  const ox = pad - box.minX * scale + (width - pad * 2 - (box.maxX - box.minX) * scale) / 2;
+  const oy = height - pad + box.minY * scale - (height - pad * 2 - (box.maxY - box.minY) * scale) / 2;
+  const X = (x) => ox + x * scale;
+  const Y = (y) => oy - y * scale;
+
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, width, height);
+  ctx.lineWidth = 2 * devicePixelRatio;
+  ctx.strokeStyle = "#c8bfb0";
+  ctx.beginPath();
+  ctx.arc(X(scene.center[0]), Y(scene.center[1]), scene.storage_radius_mm * scale, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.strokeStyle = "#c0392b";
+  ctx.beginPath();
+  ctx.arc(X(scene.center[0]), Y(scene.center[1]), scene.conflict_radius_mm * scale, 0, Math.PI * 2);
+  ctx.stroke();
+
+  for (const loop of scene.loops) {
+    ctx.beginPath();
+    loop.points.forEach(([x, y], index) => {
+      if (index === 0) ctx.moveTo(X(x), Y(y));
+      else ctx.lineTo(X(x), Y(y));
+    });
+    ctx.closePath();
+    ctx.strokeStyle = "#2c3a4a";
+    ctx.stroke();
+  }
+
+  scene.robots.forEach((robot, index) => {
+    const x = X(robot.x_mm);
+    const y = Y(robot.y_mm);
+    if (robot.leader_id) {
+      const leader = scene.robots.find((other) => other.id === robot.leader_id);
+      if (leader) {
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(X(leader.x_mm), Y(leader.y_mm));
+        ctx.strokeStyle = "rgba(192, 57, 43, 0.75)";
+        ctx.lineWidth = 1.5 * devicePixelRatio;
+        ctx.stroke();
+      }
+    }
+    const angle = -robot.heading_deg * Math.PI / 180;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+    ctx.fillStyle = COLORS[index % COLORS.length];
+    ctx.beginPath();
+    ctx.moveTo(14 * devicePixelRatio, 0);
+    ctx.lineTo(-9 * devicePixelRatio, 8 * devicePixelRatio);
+    ctx.lineTo(-9 * devicePixelRatio, -8 * devicePixelRatio);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+    ctx.fillStyle = "#1c1c1c";
+    ctx.font = `${14 * devicePixelRatio}px Palatino, serif`;
+    ctx.fillText(robot.id, x + 12 * devicePixelRatio, y - 12 * devicePixelRatio);
+  });
+}
+
+function paintLamps() {
+  const phase = scene && scene.phase ? scene.phase.phase : "open";
+  const occupied = phase === "occupied";
+  document.getElementById("lamp-green").className = occupied ? "" : "on-green";
+  document.getElementById("lamp-red").className = occupied ? "on-red" : "";
+  const label = document.getElementById("phase");
+  if (!scene || !scene.phase) {
+    label.textContent = "en attente";
+    return;
+  }
+  label.textContent = occupied
+    ? "rouge · " + scene.phase.occupied_by + " dans le croisement"
+    : "voie libre";
+}
+
+function paintRobots() {
+  const root = document.getElementById("robots");
+  root.replaceChildren();
+  if (!scene) return;
+  for (const robot of scene.robots) {
+    const block = document.createElement("p");
+    block.className = "robot";
+    const stopped = robot.speed_mm_s < 1;
+    const motion = stopped ? "arrêté" : Math.round(robot.speed_mm_s) + " mm/s";
+    const sensor = robot.sensor_mm == null
+      ? ""
+      : " · capteur " + Math.round(robot.sensor_mm) + " mm → " + robot.leader_id;
+    block.textContent = robot.id + " · " + robot.zone + " · " + motion + sensor;
+    root.appendChild(block);
+  }
+}
+
+async function poll() {
+  const response = await fetch("/scene");
+  scene = await response.json();
+  draw();
+  paintLamps();
+  paintRobots();
+}
+
+resize();
+setInterval(() => { poll().catch(() => {}); }, 100);
+document.getElementById("add-robot").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const error = document.getElementById("add-error");
+  error.textContent = "";
+  const response = await fetch("/robots", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ speed_mm_s: Number(document.getElementById("speed").value) }),
+  });
+  const body = await response.json();
+  if (!response.ok) error.textContent = body.error || "ajout refusé";
+});
+</script>
+</body>
+</html>

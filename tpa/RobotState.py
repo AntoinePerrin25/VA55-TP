@@ -77,6 +77,7 @@ class RobotState:
             "r_deg2": r,
             "sample_ms": sample_period_ms,
         })
+        self.own_screen = False
         self.reset_localization()
 
     def updateLastColor(self, color):
@@ -213,7 +214,7 @@ class RobotState:
         }
         self.history.append(row)
         self.logger.log(row)
-        if now - self._screen_ms >= 1000:
+        if not self.own_screen and now - self._screen_ms >= 1000:
             self._screen_ms = now
             self.updateLCD("Tour " + str(self.lap))
         return self.pose

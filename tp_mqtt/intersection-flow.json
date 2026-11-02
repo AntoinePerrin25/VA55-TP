@@ -1,0 +1,189 @@
+[
+    {
+        "id": "tab_intersection",
+        "type": "tab",
+        "label": "Intersection",
+        "disabled": false,
+        "info": "Feu du croisement sur un seul huit.\n\nLes deux robots suivent la même ligne, dans le même sens, et publient robots/{id}/state (QoS 0).\nCe flux publie intersection/phase (QoS 1, retenu).\n\nLa voie est libre tant que personne n'est dans le disque de conflit. Dès qu'un robot y entre, lui seul continue : les autres s'arrêtent avant le disque. Ils repartent dès qu'il en sort."
+    },
+    {
+        "id": "broker_local",
+        "type": "mqtt-broker",
+        "name": "Mosquitto local",
+        "broker": "127.0.0.1",
+        "port": 1883,
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": 4,
+        "keepalive": 60,
+        "cleansession": true,
+        "autoUnsubscribe": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthRetain": "false",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closeRetain": "false",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willRetain": "false",
+        "willPayload": "",
+        "willMsg": {},
+        "sessionExpiry": 0
+    },
+    {
+        "id": "comment_topics",
+        "type": "comment",
+        "z": "tab_intersection",
+        "name": "un huit, même sens — rouge seulement si le disque est occupé",
+        "info": "",
+        "x": 280,
+        "y": 60,
+        "wires": []
+    },
+    {
+        "id": "inj_tick",
+        "type": "inject",
+        "z": "tab_intersection",
+        "name": "inutilisé",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "0.25",
+        "crontab": "",
+        "once": true,
+        "onceDelay": "0.4",
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 180,
+        "y": 140,
+        "wires": []
+    },
+    {
+        "id": "fn_light",
+        "type": "function",
+        "z": "tab_intersection",
+        "name": "voie libre si le disque est vide",
+        "func": "const body = msg.payload || {};\nconst states = flow.get(\"states\") || {};\nif (body.id) {\n    states[body.id] = body.zone || \"\";\n    flow.set(\"states\", states);\n}\nconst ids = Object.keys(states);\nconst inside = ids.filter((id) => states[id] === \"conflit\");\nif (inside.length === 0) {\n    msg.payload = {\n        phase: \"open\",\n        green: ids.length ? ids : [\"A\", \"B\"],\n        all_red: false,\n        occupied_by: null\n    };\n} else {\n    msg.payload = {\n        phase: \"occupied\",\n        green: inside,\n        all_red: false,\n        occupied_by: inside[0]\n    };\n}\nmsg.qos = 1;\nmsg.retain = true;\nnode.status({\n    fill: inside.length ? \"red\" : \"green\",\n    shape: \"dot\",\n    text: inside.length ? (\"occupé \" + inside.join(\", \")) : \"voie libre\"\n});\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 430,
+        "y": 140,
+        "wires": [
+            [
+                "mqtt_phase",
+                "dbg_phase"
+            ]
+        ]
+    },
+    {
+        "id": "mqtt_phase",
+        "type": "mqtt out",
+        "z": "tab_intersection",
+        "name": "phase QoS 1",
+        "topic": "intersection/phase",
+        "qos": "1",
+        "retain": "true",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "broker_local",
+        "x": 680,
+        "y": 140,
+        "wires": []
+    },
+    {
+        "id": "dbg_phase",
+        "type": "debug",
+        "z": "tab_intersection",
+        "name": "phase",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 670,
+        "y": 200,
+        "wires": []
+    },
+    {
+        "id": "mqtt_state",
+        "type": "mqtt in",
+        "z": "tab_intersection",
+        "name": "états robots",
+        "topic": "robots/+/state",
+        "qos": "0",
+        "datatype": "json",
+        "broker": "broker_local",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 170,
+        "y": 280,
+        "wires": [
+            [
+                "fn_zones",
+                "fn_light"
+            ]
+        ]
+    },
+    {
+        "id": "fn_zones",
+        "type": "function",
+        "z": "tab_intersection",
+        "name": "changement de zone",
+        "func": "const body = msg.payload || {};\nconst id = body.id || \"?\";\nconst zones = flow.get(\"zones\") || {};\nconst changed = zones[id] !== body.zone;\nzones[id] = body.zone;\nflow.set(\"zones\", zones);\nnode.status({\n    fill: body.zone === \"conflit\" ? \"red\" : (body.speed_mm_s > 1 ? \"green\" : \"yellow\"),\n    shape: \"dot\",\n    text: id + \" \" + (body.zone || \"\") + \" \" + Math.round(body.speed_mm_s || 0) + \" mm/s\"\n});\nif (!changed) return null;\nmsg.payload = id + \" → \" + body.zone;\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 430,
+        "y": 280,
+        "wires": [
+            [
+                "dbg_zone"
+            ]
+        ]
+    },
+    {
+        "id": "dbg_zone",
+        "type": "debug",
+        "z": "tab_intersection",
+        "name": "zone",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 660,
+        "y": 280,
+        "wires": []
+    }
+]
