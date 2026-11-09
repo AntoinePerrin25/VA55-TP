@@ -60,6 +60,8 @@ class RobotDrive:
         self.right.run_angle(motor_speed, motor_angle, Stop.HOLD, True)
 
     def stop(self):
+        self.command_speed_mm_s = 0.0
+        self.command_turn_rate_deg_s = 0.0
         self.left.hold()
         self.right.hold()
 

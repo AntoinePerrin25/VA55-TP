@@ -2,9 +2,9 @@
     {
         "id": "tab_intersection",
         "type": "tab",
-        "label": "Intersection",
+        "label": "Accès coopératif",
         "disabled": false,
-        "info": "Feu du croisement sur un seul huit.\n\nLes deux robots suivent la même ligne, dans le même sens, et publient robots/{id}/state (QoS 0).\nCe flux publie intersection/phase (QoS 1, retenu).\n\nLa voie est libre tant que personne n'est dans le disque de conflit. Dès qu'un robot y entre, lui seul continue : les autres s'arrêtent avant le disque. Ils repartent dès qu'il en sort."
+        "info": "Un seul droit à la fois. Le robot le plus proche parmi les demandes fraîches reçoit le droit. La réservation est conservée jusqu'à la libération. Un robot muet qui détient le droit bloque les nouvelles entrées."
     },
     {
         "id": "broker_local",
@@ -40,7 +40,7 @@
         "id": "comment_topics",
         "type": "comment",
         "z": "tab_intersection",
-        "name": "un huit, même sens — rouge seulement si le disque est occupé",
+        "name": "robots/+/state (QoS 0) → intersection/phase (QoS 1)",
         "info": "",
         "x": 280,
         "y": 60,
@@ -50,7 +50,7 @@
         "id": "inj_tick",
         "type": "inject",
         "z": "tab_intersection",
-        "name": "inutilisé",
+        "name": "Toutes les 200 ms",
         "props": [
             {
                 "p": "payload"
@@ -60,31 +60,35 @@
                 "vt": "str"
             }
         ],
-        "repeat": "0.25",
+        "repeat": "0.2",
         "crontab": "",
         "once": true,
-        "onceDelay": "0.4",
-        "topic": "",
+        "onceDelay": "0.1",
+        "topic": "tick",
         "payload": "",
         "payloadType": "date",
-        "x": 180,
-        "y": 140,
-        "wires": []
+        "x": 190,
+        "y": 180,
+        "wires": [
+            [
+                "fn_light"
+            ]
+        ]
     },
     {
         "id": "fn_light",
         "type": "function",
         "z": "tab_intersection",
-        "name": "voie libre si le disque est vide",
-        "func": "const body = msg.payload || {};\nconst states = flow.get(\"states\") || {};\nif (body.id) {\n    states[body.id] = body.zone || \"\";\n    flow.set(\"states\", states);\n}\nconst ids = Object.keys(states);\nconst inside = ids.filter((id) => states[id] === \"conflit\");\nif (inside.length === 0) {\n    msg.payload = {\n        phase: \"open\",\n        green: ids.length ? ids : [\"A\", \"B\"],\n        all_red: false,\n        occupied_by: null\n    };\n} else {\n    msg.payload = {\n        phase: \"occupied\",\n        green: inside,\n        all_red: false,\n        occupied_by: inside[0]\n    };\n}\nmsg.qos = 1;\nmsg.retain = true;\nnode.status({\n    fill: inside.length ? \"red\" : \"green\",\n    shape: \"dot\",\n    text: inside.length ? (\"occupé \" + inside.join(\", \")) : \"voie libre\"\n});\nreturn msg;\n",
+        "name": "Réserver le croisement",
+        "func": "const now = Date.now();\nconst timeout = 1000;\nconst states = context.get(\"states\") || {};\nlet owner = context.get(\"owner\") || null;\n\n// Le tick décide entre toutes les demandes reçues depuis le cycle précédent.\nif (msg.topic !== \"tick\") {\n    const state = msg.payload;\n    const topic = /^robots\\/([A-Z0-9_-]{1,16})\\/state$/.exec(msg.topic);\n    if (msg.retain || !topic || !state || topic[1] !== state.id ||\n        ![\"ligne\", \"approche\", \"engage\", \"libere\"].includes(state.passage) ||\n        !Number.isFinite(state.distance_to_conflict_mm) ||\n        state.distance_to_conflict_mm < 0) return null;\n\n    const session = state.simulation_session;\n    if (typeof session === \"string\" && session !== context.get(\"simulation_session\")) {\n        // Une nouvelle simulation remplace la précédente. Les EV3 restent réservés.\n        for (const [id, previous] of Object.entries(states)) {\n            // progress_mm identifie aussi les simulateurs lancés avant cet ajout.\n            const legacySim = previous.name === \"huit\" && Number.isFinite(previous.progress_mm);\n            if (typeof previous.simulation_session !== \"string\" && !legacySim) continue;\n            delete states[id];\n            if (owner === id) {\n                owner = null;\n                context.set(\"owner\", null);\n            }\n        }\n        context.set(\"simulation_session\", session);\n    }\n\n    states[state.id] = { ...state, received: now };\n    context.set(\"states\", states);\n    if (state.id === owner && state.passage === \"libere\") context.set(\"owner\", null);\n    return null;\n}\n\nconst robots = Object.values(states);\nconst engaged = robots.filter(robot => robot.passage === \"engage\");\nconst starting = now - context.get(\"started\") < 1200;\nif (!owner && engaged.length === 1) owner = engaged[0].id;\nconst conflict = engaged.some(robot => robot.id !== owner);\n\nif (!starting && !conflict && !owner) {\n    const waiting = robots.filter(robot =>\n        robot.passage === \"approche\" && now - robot.received < timeout);\n    waiting.sort((a, b) =>\n        a.distance_to_conflict_mm - b.distance_to_conflict_mm || a.id.localeCompare(b.id));\n    if (waiting.length) owner = waiting[0].id;\n}\ncontext.set(\"owner\", owner);\n\nconst staleOwner = owner && now - states[owner].received >= timeout;\nconst allRed = starting || conflict || staleOwner;\nconst phase = allRed ? \"all_red\" : engaged.length ? \"occupied\" : owner ? \"reserved\" : \"open\";\nmsg.payload = {\n    mode: \"acces_cooperatif\",\n    phase,\n    green: owner && !allRed ? [owner] : [],\n    occupied_by: engaged.length === 1 ? engaged[0].id : null,\n    owner,\n    reason: starting ? \"demarrage\" : conflict ? \"conflit\" : staleOwner ? \"robot muet\" : null\n};\nnode.status({ fill: allRed ? \"red\" : owner ? \"yellow\" : \"green\", shape: \"dot\",\n    text: phase + (owner ? \" · \" + owner : \"\") });\nreturn msg;\n",
         "outputs": 1,
         "timeout": 0,
         "noerr": 0,
-        "initialize": "",
+        "initialize": "context.set(\"states\", {});\ncontext.set(\"owner\", null);\ncontext.set(\"started\", Date.now());\ncontext.set(\"simulation_session\", null);",
         "finalize": "",
         "libs": [],
-        "x": 430,
-        "y": 140,
+        "x": 450,
+        "y": 180,
         "wires": [
             [
                 "mqtt_phase",
@@ -99,15 +103,15 @@
         "name": "phase QoS 1",
         "topic": "intersection/phase",
         "qos": "1",
-        "retain": "true",
+        "retain": "false",
         "respTopic": "",
         "contentType": "",
         "userProps": "",
         "correl": "",
         "expiry": "",
         "broker": "broker_local",
-        "x": 680,
-        "y": 140,
+        "x": 710,
+        "y": 180,
         "wires": []
     },
     {
@@ -115,7 +119,7 @@
         "type": "debug",
         "z": "tab_intersection",
         "name": "phase",
-        "active": true,
+        "active": false,
         "tosidebar": true,
         "console": false,
         "tostatus": false,
@@ -123,8 +127,8 @@
         "targetType": "msg",
         "statusVal": "",
         "statusType": "auto",
-        "x": 670,
-        "y": 200,
+        "x": 700,
+        "y": 240,
         "wires": []
     },
     {
@@ -140,50 +144,12 @@
         "rap": true,
         "rh": 0,
         "inputs": 0,
-        "x": 170,
-        "y": 280,
+        "x": 190,
+        "y": 240,
         "wires": [
             [
-                "fn_zones",
                 "fn_light"
             ]
         ]
-    },
-    {
-        "id": "fn_zones",
-        "type": "function",
-        "z": "tab_intersection",
-        "name": "changement de zone",
-        "func": "const body = msg.payload || {};\nconst id = body.id || \"?\";\nconst zones = flow.get(\"zones\") || {};\nconst changed = zones[id] !== body.zone;\nzones[id] = body.zone;\nflow.set(\"zones\", zones);\nnode.status({\n    fill: body.zone === \"conflit\" ? \"red\" : (body.speed_mm_s > 1 ? \"green\" : \"yellow\"),\n    shape: \"dot\",\n    text: id + \" \" + (body.zone || \"\") + \" \" + Math.round(body.speed_mm_s || 0) + \" mm/s\"\n});\nif (!changed) return null;\nmsg.payload = id + \" → \" + body.zone;\nreturn msg;\n",
-        "outputs": 1,
-        "timeout": 0,
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 430,
-        "y": 280,
-        "wires": [
-            [
-                "dbg_zone"
-            ]
-        ]
-    },
-    {
-        "id": "dbg_zone",
-        "type": "debug",
-        "z": "tab_intersection",
-        "name": "zone",
-        "active": true,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "payload",
-        "targetType": "msg",
-        "statusVal": "",
-        "statusType": "auto",
-        "x": 660,
-        "y": 280,
-        "wires": []
     }
 ]

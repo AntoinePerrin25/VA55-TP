@@ -1,0 +1,79 @@
+{
+  "source": "trajectoire_2.csv",
+  "samples": 1041,
+  "duration_s": 114.50699999999999,
+  "boundary_rule": "premiere ligne du nouveau lap; detection par cap commande et distance, sans balise independante",
+  "boundaries": [
+    0,
+    252,
+    519,
+    785
+  ],
+  "boundary_times_s": [
+    0.001,
+    28.054,
+    57.394,
+    86.492
+  ],
+  "boundary_distances_mm": [
+    0.0,
+    5437.678004343454,
+    11165.6391698786,
+    16846.44153902487
+  ],
+  "dt_median_s": 0.10999999999999943,
+  "trials": [
+    {
+      "distance_scale": 1.0,
+      "heading_scale": 1.0,
+      "D_equivalent_mm": 56.00000000000001,
+      "V_equivalent_mm": 114.0,
+      "ecart_origine_fin3_mm": 678.9757829439993,
+      "ecart_fin_moins_debut_par_tour_mm": [
+        10.198416179800898,
+        408.9307889007952,
+        291.4611126604034
+      ]
+    },
+    {
+      "distance_scale": 0.95,
+      "heading_scale": 1.0,
+      "D_equivalent_mm": 53.2,
+      "V_equivalent_mm": 108.3,
+      "ecart_origine_fin3_mm": 645.0269937967995,
+      "ecart_fin_moins_debut_par_tour_mm": [
+        9.688495370810497,
+        388.48424945575584,
+        276.8880570273825
+      ]
+    },
+    {
+      "distance_scale": 1.0,
+      "heading_scale": 1.05,
+      "D_equivalent_mm": 56.00000000000001,
+      "V_equivalent_mm": 108.57142857142857,
+      "ecart_origine_fin3_mm": 280.2181416002989,
+      "ecart_fin_moins_debut_par_tour_mm": [
+        338.7043615518547,
+        103.37839503143505,
+        44.463144402702966
+      ]
+    },
+    {
+      "distance_scale": 1.0,
+      "heading_scale": 1.03,
+      "D_equivalent_mm": 56.00000000000001,
+      "V_equivalent_mm": 110.67961165048544,
+      "ecart_origine_fin3_mm": 96.83542423326297,
+      "ecart_fin_moins_debut_par_tour_mm": [
+        209.61550078280786,
+        215.57518770896826,
+        94.15632186195073
+      ]
+    }
+  ],
+  "q_deg2_s": 25.0,
+  "r_deg2": 4.0,
+  "gain_median": 0.5536888942725451,
+  "recalage": "derive affine par intervalle de distance; fermeture imposee; tour 4 exclu"
+}

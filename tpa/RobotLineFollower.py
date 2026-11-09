@@ -6,7 +6,7 @@ class RobotLineFollower:
     def __init__(
         self,
         robot,
-        speed=400,
+        speed=200,
         setpoint=50,
         period_ms=5,
         kp=1.0,
@@ -38,8 +38,10 @@ class RobotLineFollower:
         if self.intersection is not None:
             speed = self.intersection.limit(speed)
         if speed == 0:
-            steering = 0
-        self.robot.drive.drive(speed, steering)
+            self.robot.drive.stop()
+        else:
+            self.robot.drive.drive(speed, steering)
+        return speed
 
     def _limit(self, value, minimum, maximum):
         return max(minimum, min(value, maximum))
@@ -123,14 +125,16 @@ class RobotLineFollower:
                 candidate_steering = (
                     proportional_derivative + self.ki * integral_candidate
                 )
+                next_integral = integral
                 if not (
                     abs(candidate_steering) > self.max_steering
                     and candidate_steering * error > 0
                 ):
-                    integral = integral_candidate
-                steering = proportional_derivative + self.ki * integral
+                    next_integral = integral_candidate
+                steering = proportional_derivative + self.ki * next_integral
                 steering = self._limit(steering, -self.max_steering, self.max_steering)
-                self._command(self.speed, steering)
+                if self._command(self.speed, steering) != 0:
+                    integral = next_integral
                 self.robot.note_command()
                 self.robot.update_localization(localization_mode, reflection=reflection)
                 log.write("{0},{1},{2},{3},{4},{5},pid\n".format(

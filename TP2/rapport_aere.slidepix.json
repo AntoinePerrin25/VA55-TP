@@ -1,0 +1,661 @@
+{
+  "schemaVersion": 1,
+  "id": "va55-tp2-kalman-aere",
+  "metadata": {
+    "title": "VA55 : TP2, rapport",
+    "author": "PERRIN Antoine, BEAUJARD Traïan",
+    "description": "Compte rendu court, avec les calculs expliqués en mots et les observations reliées aux figures."
+  },
+  "size": {
+    "width": 1240,
+    "height": 1754
+  },
+  "theme": {
+    "background": "#ffffff",
+    "foreground": "#000000",
+    "accent": "#000000",
+    "fontFamily": "Palatino, \"Palatino Linotype\", \"Times New Roman\", Times, serif"
+  },
+  "pageNumbers": {
+    "enabled": true,
+    "color": "#000000",
+    "fontSize": 21
+  },
+  "layouts": {},
+  "slides": [
+    {
+      "id": "r1",
+      "title": "VA55 : TP2 : localisation sur un circuit en huit",
+      "notes": "Source : trajectoire_2.csv, 1041 mesures, durée complète 114,507 s. Figure limitée aux indices 0 à 785 inclus. Frontières = première ligne du nouveau lap : 0,001 ; 28,054 ; 57,394 ; 86,492 s. dt médian 0,110 s, cible 0,100 s. Le numéro de tour n'est pas issu d'orange : voir RobotState._note_lap (cap commandé ±30°, excursions ±90°, distance minimale 2500 mm). La sortie du quatrième tour provient de l'observation rapportée par les auteurs ; un écart graphique seul ne la prouve pas. Fins estimées en odométrie : normes à l'origine 10,2 ; 398,8 ; 679,0 mm. Ne pas confondre écart à l'origine et déplacement entre deux frontières.",
+      "hidden": false,
+      "hidePageNumber": false,
+      "transition": {
+        "type": "none",
+        "durationMs": 0,
+        "easing": "ease-in-out"
+      },
+      "timeline": [],
+      "elements": [
+        {
+          "id": "r1-h",
+          "morphKey": "r1-h",
+          "x": 100,
+          "y": 85,
+          "width": 1040,
+          "height": 70,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 1,
+          "locked": false,
+          "hidden": false,
+          "type": "text",
+          "markdown": "VA55 TP2 : Rendu",
+          "style": {
+            "fontFamily": "Palatino, \"Palatino Linotype\", \"Times New Roman\", Times, serif",
+            "fontSize": 32,
+            "fontWeight": 600,
+            "color": "#000000",
+            "textAlign": "left",
+            "verticalAlign": "top",
+            "lineHeight": 1.32,
+            "padding": 0
+          }
+        },
+        {
+          "id": "r1-p1",
+          "morphKey": "r1-p1",
+          "x": 100,
+          "y": 165,
+          "width": 1040,
+          "height": 45,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 1,
+          "locked": false,
+          "hidden": false,
+          "type": "text",
+          "markdown": "PERRIN Antoine, BEAUJARD Traïan",
+          "style": {
+            "fontFamily": "Palatino, \"Palatino Linotype\", \"Times New Roman\", Times, serif",
+            "fontSize": 24,
+            "fontWeight": 400,
+            "color": "#000000",
+            "textAlign": "left",
+            "verticalAlign": "top",
+            "lineHeight": 1.32,
+            "padding": 0
+          }
+        },
+        {
+          "id": "r1-p2",
+          "morphKey": "r1-p2",
+          "x": 100,
+          "y": 255,
+          "width": 1040,
+          "height": 50,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 1,
+          "locked": false,
+          "hidden": false,
+          "type": "text",
+          "markdown": "1\\. Calcul de la trajectoire",
+          "style": {
+            "fontFamily": "Palatino, \"Palatino Linotype\", \"Times New Roman\", Times, serif",
+            "fontSize": 29,
+            "fontWeight": 400,
+            "color": "#000000",
+            "textAlign": "left",
+            "verticalAlign": "top",
+            "lineHeight": 1.32,
+            "padding": 0
+          }
+        },
+        {
+          "id": "r1-p3",
+          "morphKey": "r1-p3",
+          "x": 100,
+          "y": 330,
+          "width": 1040,
+          "height": 370,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 1,
+          "locked": false,
+          "hidden": false,
+          "type": "text",
+          "markdown": "On garde le PID du TP1 pour suivre le nouveau circuit en forme de huit, et on enregistre les positions calculées pendant plusieurs tours. On en utilise trois pour comparer les résultats. Il y a eu une sortie de ligne au 4e tour que nous avons gardé dans les logs pour le fun ; il apparaît en gris sur la figure 1, mais ne compte pas comme un tour terminé\n\nÀ chaque mesure, on calcule combien le robot a avancé et dans quelle direction. On ajoute ce déplacement à la position précédente : $x_k=x_{k-1}+\\Delta s_k\\cos\\theta_k$ et $y_k=y_{k-1}+\\Delta s_k\\sin\\theta_k$. Ici, le cap est simplement l’orientation du robot.\n\nLa figure 1 montre ce qu’on obtient en utilisant les consignes envoyées aux moteurs, les mesures des roues, ou l’angle du gyro avec la distance commandée.",
+          "style": {
+            "fontFamily": "Palatino, \"Palatino Linotype\", \"Times New Roman\", Times, serif",
+            "fontSize": 26,
+            "fontWeight": 400,
+            "color": "#000000",
+            "textAlign": "left",
+            "verticalAlign": "top",
+            "lineHeight": 1.32,
+            "padding": 0
+          }
+        },
+        {
+          "id": "r1-img",
+          "morphKey": "r1-img",
+          "x": 100,
+          "y": 735,
+          "width": 1040,
+          "height": 424.57142857142856,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 0,
+          "locked": false,
+          "hidden": false,
+          "alt": "Figure 1 : chaque graphe représente une méthode, chaque couleur un tour. Le gris pointillé montre le quatrième tour interrompu.",
+          "type": "image",
+          "src": "plots/rapport_methodes_revu.png",
+          "storage": "linked",
+          "crop": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          },
+          "borderRadius": 0,
+          "edgeFade": 0,
+          "border": {
+            "width": 0,
+            "color": "transparent"
+          },
+          "lockAspectRatio": true,
+          "aspectRatio": 2.4495289367429343
+        },
+        {
+          "id": "r1-p5",
+          "morphKey": "r1-p5",
+          "x": 100,
+          "y": 1177.5714285714284,
+          "width": 1040,
+          "height": 85,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 1,
+          "locked": false,
+          "hidden": false,
+          "type": "text",
+          "markdown": "Figure 1 : une méthode par graphe, une couleur par tour. Le point noir marque le départ du premier tour, au milieu de la partie haute du huit, pas au croisement. Le gris pointillé montre le quatrième tour interrompu.",
+          "style": {
+            "fontFamily": "Palatino, \"Palatino Linotype\", \"Times New Roman\", Times, serif",
+            "fontSize": 21,
+            "fontWeight": 400,
+            "color": "#000000",
+            "textAlign": "left",
+            "verticalAlign": "top",
+            "lineHeight": 1.32,
+            "padding": 0
+          }
+        },
+        {
+          "id": "r1-p6",
+          "morphKey": "r1-p6",
+          "x": 100,
+          "y": 1285,
+          "width": 1040,
+          "height": 300,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 1,
+          "locked": false,
+          "hidden": false,
+          "type": "text",
+          "markdown": "À gauche, le calcul suppose que le robot suit exactement les vitesses demandées. Il peut donc dessiner un huit régulier sans que la position soit juste. Avec les mesures des roues, les tours se décalent. L’angle du gyro donne des tours plus proches les uns des autres, mais toujours décalés par rapport au départ.\n\nOn essaie donc de régler les paramètres des roues, puis on compare avec Kalman pour voir s’il apporte quelque chose de plus que le gyro. Les passages au départ sont estimés à partir du cap commandé, sans balise au sol.",
+          "style": {
+            "fontFamily": "Palatino, \"Palatino Linotype\", \"Times New Roman\", Times, serif",
+            "fontSize": 26,
+            "fontWeight": 400,
+            "color": "#000000",
+            "textAlign": "left",
+            "verticalAlign": "top",
+            "lineHeight": 1.32,
+            "padding": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "r2",
+      "title": "2. Effet du diamètre des roues et de la voie",
+      "notes": "Rejeu avec la même intégration Euler que les coordonnées enregistrées, vérifiée à 1e-8 mm. α=1 β=1 : 678,976 mm après trois tours ; α=0,95 β=1 : 645,027 ; α=1 β=1,05 : 280,218 ; α=1 β=1,03 : 96,835. Paramètres physiques équivalents : D'=αD et V'=αV/β. Le cas α=0,95 β=1 change donc aussi V (D'=53,2, V'=108,3) pour conserver D/V : on ne prétend pas isoler D. Le choix β=1,03 est exploratoire sur les données utilisées pour le juger, sans validation indépendante ni minimum global démontré. La combinaison α=0,90 β=1,03 du brouillon n'est pas retenue : elle ajoute un rétrécissement non justifié physiquement. Données exactes dans analyse/bilan.json.\nRejeu avec la même intégration Euler que les coordonnées enregistrées, vérifiée à 1e-8 mm. α=1 β=1 : 678,976 mm après trois tours ; α=0,95 β=1 : 645,027 ; α=1 β=1,05 : 280,218 ; α=1 β=1,03 : 96,835. Paramètres physiques équivalents : D'=αD et V'=αV/β. Le cas α=0,95 β=1 change donc aussi V (D'=53,2, V'=108,3) pour conserver D/V : on ne prétend pas isoler D. Le choix β=1,03 est exploratoire sur les données utilisées pour le juger, sans validation indépendante ni minimum global démontré. La combinaison α=0,90 β=1,03 du brouillon n'est pas retenue : elle ajoute un rétrécissement non justifié physiquement. Données exactes dans analyse/bilan.json.",
+      "hidden": false,
+      "hidePageNumber": false,
+      "transition": {
+        "type": "none",
+        "durationMs": 0,
+        "easing": "ease-in-out"
+      },
+      "timeline": [],
+      "elements": [
+        {
+          "id": "r2-h",
+          "morphKey": "r2-h",
+          "x": 100,
+          "y": 85,
+          "width": 1040,
+          "height": 70,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 1,
+          "locked": false,
+          "hidden": false,
+          "type": "text",
+          "markdown": "2\\. Effet du diamètre des roues et de la voie",
+          "style": {
+            "fontFamily": "Palatino, \"Palatino Linotype\", \"Times New Roman\", Times, serif",
+            "fontSize": 34,
+            "fontWeight": 600,
+            "color": "#000000",
+            "textAlign": "left",
+            "verticalAlign": "top",
+            "lineHeight": 1.32,
+            "padding": 0
+          }
+        },
+        {
+          "id": "r2-p1",
+          "morphKey": "r2-p1",
+          "x": 100,
+          "y": 175,
+          "width": 1040,
+          "height": 240,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 1,
+          "locked": false,
+          "hidden": false,
+          "type": "text",
+          "markdown": "Le diamètre des roues D sert à convertir leur rotation en distance. La voie V, qui est la distance entre les deux roues, sert à calculer de combien le robot tourne. Si ces valeurs sont fausses, le trajet dessiné peut être trop grand ou tourner trop, ou pas assez.\n\nOn n’a pas mesuré la longueur réelle du circuit. On ne cherche donc pas à retrouver les dimensions exactes du robot avec ces graphes. On reprend le même enregistrement et on change l’échelle des distances ou des angles pour voir ce qui rapproche les tours.",
+          "style": {
+            "fontFamily": "Palatino, \"Palatino Linotype\", \"Times New Roman\", Times, serif",
+            "fontSize": 26,
+            "fontWeight": 400,
+            "color": "#000000",
+            "textAlign": "left",
+            "verticalAlign": "top",
+            "lineHeight": 1.32,
+            "padding": 0
+          }
+        },
+        {
+          "id": "r2-img",
+          "morphKey": "r2-img",
+          "x": 229.05840286054826,
+          "y": 455,
+          "width": 781.8831942789035,
+          "height": 800,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 0,
+          "locked": false,
+          "hidden": false,
+          "alt": "Figure 2 : effet des changements de distance et de cap sur les trois tours. Les quatre graphes gardent les mêmes axes.",
+          "type": "image",
+          "src": "plots/rapport_calibration_revu.png",
+          "storage": "linked",
+          "crop": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          },
+          "borderRadius": 0,
+          "edgeFade": 0,
+          "border": {
+            "width": 0,
+            "color": "transparent"
+          },
+          "lockAspectRatio": true,
+          "aspectRatio": 0.9773539928486293
+        },
+        {
+          "id": "r2-p3",
+          "morphKey": "r2-p3",
+          "x": 100,
+          "y": 1273,
+          "width": 1040,
+          "height": 85,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 1,
+          "locked": false,
+          "hidden": false,
+          "type": "text",
+          "markdown": "Figure 2 : effet des changements de distance et de cap sur les trois tours, avec les mêmes axes. L’écart indiqué est mesuré par rapport au départ du premier tour (point noir), dans la partie haute du huit.",
+          "style": {
+            "fontFamily": "Palatino, \"Palatino Linotype\", \"Times New Roman\", Times, serif",
+            "fontSize": 21,
+            "fontWeight": 400,
+            "color": "#000000",
+            "textAlign": "left",
+            "verticalAlign": "top",
+            "lineHeight": 1.32,
+            "padding": 0
+          }
+        },
+        {
+          "id": "r2-p4",
+          "morphKey": "r2-p4",
+          "x": 100,
+          "y": 1355,
+          "width": 1040,
+          "height": 255,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 1,
+          "locked": false,
+          "hidden": false,
+          "type": "text",
+          "markdown": "Réduire la distance de 5 % réduit tout le dessin de 5 % : l’écart final passe de 679 à 645 mm. Augmenter les angles de 3 % le ramène à 97 mm, mais le premier tour se ferme moins bien : 210 mm au lieu de 10 mm.\n\nCe réglage améliore donc un retour et en dégrade un autre. On le garde pour la comparaison avec Kalman, mais cela ne veut pas dire qu’on a trouvé les bonnes valeurs de D et V.",
+          "style": {
+            "fontFamily": "Palatino, \"Palatino Linotype\", \"Times New Roman\", Times, serif",
+            "fontSize": 26,
+            "fontWeight": 400,
+            "color": "#000000",
+            "textAlign": "left",
+            "verticalAlign": "top",
+            "lineHeight": 1.32,
+            "padding": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "r3",
+      "title": "3. Recalage affine entre les départs estimés",
+      "notes": "Source : trajectoire_2.csv, odométrie brute seulement, indices 0..785. Interpolation indépendante de x et y selon la distance cumulée, entre les indices [0,252,519,785]. Chaque départ/fin corrigé vaut exactement (0,0), vérifié numériquement. Le quatrième tour est exclu faute de retour suivant. Il ne s'agit ni d'une matrice affine spatiale Ap+b, ni d'une estimation des paramètres D/V, ni d'un filtre causal. Les origines estimées ne sont pas mesurées par une balise ; on ne présente aucune fermeture forcée comme un gain d'exactitude. Algorithme : TP2/figures_rapport.py::affine_between_starts ; données : TP2/analyse/recalage_affine.csv. Cette méthode remplace la régression globale non contrainte du brouillon, qui déplaçait l'origine.\nSource : trajectoire_2.csv, odométrie brute seulement, indices 0..785. Interpolation indépendante de x et y selon la distance cumulée, entre les indices [0,252,519,785]. Chaque départ/fin corrigé vaut exactement (0,0), vérifié numériquement. Le quatrième tour est exclu faute de retour suivant. Il ne s'agit ni d'une matrice affine spatiale Ap+b, ni d'une estimation des paramètres D/V, ni d'un filtre causal. Les origines estimées ne sont pas mesurées par une balise ; on ne présente aucune fermeture forcée comme un gain d'exactitude. Algorithme : TP2/figures_rapport.py::affine_between_starts ; données : TP2/analyse/recalage_affine.csv. Cette méthode remplace la régression globale non contrainte du brouillon, qui déplaçait l'origine.",
+      "hidden": false,
+      "hidePageNumber": false,
+      "transition": {
+        "type": "none",
+        "durationMs": 0,
+        "easing": "ease-in-out"
+      },
+      "timeline": [],
+      "elements": [
+        {
+          "id": "r3-h",
+          "morphKey": "r3-h",
+          "x": 100,
+          "y": 85,
+          "width": 1040,
+          "height": 70,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 1,
+          "locked": false,
+          "hidden": false,
+          "type": "text",
+          "markdown": "3\\. Recalage affine entre les départs estimés",
+          "style": {
+            "fontFamily": "Palatino, \"Palatino Linotype\", \"Times New Roman\", Times, serif",
+            "fontSize": 34,
+            "fontWeight": 600,
+            "color": "#000000",
+            "textAlign": "left",
+            "verticalAlign": "top",
+            "lineHeight": 1.32,
+            "padding": 0
+          }
+        },
+        {
+          "id": "r3-p1",
+          "morphKey": "r3-p1",
+          "x": 100,
+          "y": 175,
+          "width": 1040,
+          "height": 360,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 1,
+          "locked": false,
+          "hidden": false,
+          "type": "text",
+          "markdown": "Sur la figure 1, les positions calculées au début des tours se décalent. Le départ du tour se situe au milieu de la partie haute du huit, pas au croisement. On suppose que le robot y repasse à chaque tour.\n\nPour chaque tour, on relie sa position de départ calculée à celle du tour suivant. On soustrait ce décalage aux positions, progressivement selon la distance parcourue. Les débuts et fins des trois tours sont ainsi replacés au départ du premier tour.\n\nLa figure 3 montre le résultat avant et après. En bas, les droites montrent la correction retirée en x et en y. Ce traitement se fait après l’essai : il faut connaître le début du tour suivant pour corriger le précédent.",
+          "style": {
+            "fontFamily": "Palatino, \"Palatino Linotype\", \"Times New Roman\", Times, serif",
+            "fontSize": 26,
+            "fontWeight": 400,
+            "color": "#000000",
+            "textAlign": "left",
+            "verticalAlign": "top",
+            "lineHeight": 1.32,
+            "padding": 0
+          }
+        },
+        {
+          "id": "r3-img",
+          "morphKey": "r3-img",
+          "x": 182.88798920377866,
+          "y": 570,
+          "width": 874.2240215924427,
+          "height": 790,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 0,
+          "locked": false,
+          "hidden": false,
+          "alt": "Figure 3 : odométrie avant et après recalage. En bas, les droites donnent le décalage soustrait entre deux départs estimés.",
+          "type": "image",
+          "src": "plots/rapport_affine_revu.png",
+          "storage": "linked",
+          "crop": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          },
+          "borderRadius": 0,
+          "edgeFade": 0,
+          "border": {
+            "width": 0,
+            "color": "transparent"
+          },
+          "lockAspectRatio": true,
+          "aspectRatio": 1.106612685560054
+        },
+        {
+          "id": "r3-p3",
+          "morphKey": "r3-p3",
+          "x": 100,
+          "y": 1378,
+          "width": 1040,
+          "height": 85,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 1,
+          "locked": false,
+          "hidden": false,
+          "type": "text",
+          "markdown": "Figure 3 : odométrie avant et après recalage. En bas, les droites donnent le décalage soustrait entre deux départs estimés.",
+          "style": {
+            "fontFamily": "Palatino, \"Palatino Linotype\", \"Times New Roman\", Times, serif",
+            "fontSize": 21,
+            "fontWeight": 400,
+            "color": "#000000",
+            "textAlign": "left",
+            "verticalAlign": "top",
+            "lineHeight": 1.32,
+            "padding": 0
+          }
+        },
+        {
+          "id": "r3-p4",
+          "morphKey": "r3-p4",
+          "x": 100,
+          "y": 1465,
+          "width": 1040,
+          "height": 135,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 1,
+          "locked": false,
+          "hidden": false,
+          "type": "text",
+          "markdown": "Après recalage, les débuts et fins des tours coïncident avec le point noir par construction. Cela ne prouve pas que les positions sont plus justes sur le reste du trajet : les boucles restent différentes. Le quatrième tour n’est pas corrigé, car il n’est pas terminé.",
+          "style": {
+            "fontFamily": "Palatino, \"Palatino Linotype\", \"Times New Roman\", Times, serif",
+            "fontSize": 26,
+            "fontWeight": 400,
+            "color": "#000000",
+            "textAlign": "left",
+            "verticalAlign": "top",
+            "lineHeight": 1.32,
+            "padding": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "r4",
+      "title": "4. Kalman apporte-t-il un gain sur ce relevé ?",
+      "notes": "Rejeu séquentiel avec distance inchangée, vitesse de rotation odométrique ×1,03 puis correction par le gyro inchangé ; q=25 deg²/s, R=4 deg², P0=1 deg². Le rejeu à β=1 reproduit les colonnes Kalman du CSV à 1e-8, validant le calcul. Le rejeu après β=1,03 est un traitement offline, pas un nouvel essai du robot. Gain médian ~0,554. Écarts locaux fin-début des tours 1/2/3 : initial [10,2;408,9;291,5], cap ×1,03 [209,6;215,6;94,2], puis Kalman [268,3;36,6;64,2] mm. Écart à l'origine après trois tours : 679,0;96,8;275,2 mm. Ces métriques ne sont pas des erreurs XY absolues. Le gyro peut dériver et les frontières ne sont pas indépendantes. Le filtre ne modifie pas le PID de suivi. Sources : tpa/RobotState.py::HeadingKalman et CSV acquis.\nRejeu séquentiel avec distance inchangée, vitesse de rotation odométrique ×1,03 puis correction par le gyro inchangé ; q=25 deg²/s, R=4 deg², P0=1 deg². Le rejeu à β=1 reproduit les colonnes Kalman du CSV à 1e-8, validant le calcul. Le rejeu après β=1,03 est un traitement offline, pas un nouvel essai du robot. Gain médian ~0,554. Écarts locaux fin-début des tours 1/2/3 : initial [10,2;408,9;291,5], cap ×1,03 [209,6;215,6;94,2], puis Kalman [268,3;36,6;64,2] mm. Écart à l'origine après trois tours : 679,0;96,8;275,2 mm. Ces métriques ne sont pas des erreurs XY absolues. Le gyro peut dériver et les frontières ne sont pas indépendantes. Le filtre ne modifie pas le PID de suivi. Sources : tpa/RobotState.py::HeadingKalman et CSV acquis.\nComparaison ajoutée : méthode gyro + distance commandée, écarts locaux tours 2/3 = 35,201 et 65,472 mm. Kalman après cap x1,03 = 36,554 et 64,221 mm. Les distances utilisées diffèrent ; ne pas attribuer tout l’écart au filtrage du cap.",
+      "hidden": false,
+      "hidePageNumber": false,
+      "transition": {
+        "type": "none",
+        "durationMs": 0,
+        "easing": "ease-in-out"
+      },
+      "timeline": [],
+      "elements": [
+        {
+          "id": "r4-h",
+          "morphKey": "r4-h",
+          "x": 100,
+          "y": 85,
+          "width": 1040,
+          "height": 70,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 1,
+          "locked": false,
+          "hidden": false,
+          "type": "text",
+          "markdown": "4\\. Comparaison avec Kalman",
+          "style": {
+            "fontFamily": "Palatino, \"Palatino Linotype\", \"Times New Roman\", Times, serif",
+            "fontSize": 34,
+            "fontWeight": 600,
+            "color": "#000000",
+            "textAlign": "left",
+            "verticalAlign": "top",
+            "lineHeight": 1.32,
+            "padding": 0
+          }
+        },
+        {
+          "id": "r4-p1",
+          "morphKey": "r4-p1",
+          "x": 100,
+          "y": 175,
+          "width": 1040,
+          "height": 445,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 1,
+          "locked": false,
+          "hidden": false,
+          "type": "text",
+          "markdown": "Les tours calculés avec le gyro sont déjà assez proches. On teste Kalman pour voir si combiner cet angle avec les mesures des roues donne un meilleur résultat.\n\nLe filtre part de l’angle précédent et ajoute la rotation mesurée par les roues. Il compare ensuite cet angle prévu à celui du gyro et le corrige en fonction de l’écart. Le poids donné à cette correction dépend de la confiance accordée aux deux sources.\n\nAvec les réglages utilisés, q = 25 deg²/s et R = 4 deg², le gain est généralement proche de 0,55. Le filtre corrige donc environ la moitié de l’écart au gyro à chaque mesure. On n’a pas fait d’essai de bruit pour affiner ces réglages.\n\nLa figure 4 compare les roues avec les angles augmentés de 3 %, le calcul avec l’angle du gyro, puis Kalman. Pour Kalman, la distance vient des roues ; pour la méthode gyro, elle vient de la commande. Le recalage de la page précédente n’est pas appliqué ici.",
+          "style": {
+            "fontFamily": "Palatino, \"Palatino Linotype\", \"Times New Roman\", Times, serif",
+            "fontSize": 26,
+            "fontWeight": 400,
+            "color": "#000000",
+            "textAlign": "left",
+            "verticalAlign": "top",
+            "lineHeight": 1.32,
+            "padding": 0
+          }
+        },
+        {
+          "id": "r5-img",
+          "morphKey": "r5-img",
+          "x": 137.24137931034483,
+          "y": 655,
+          "width": 965.5172413793103,
+          "height": 400,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 0,
+          "locked": false,
+          "hidden": false,
+          "alt": "Figure 4 : comparaison avec le calcul utilisant déjà le gyro. Couleurs : tours 1, 2 et 3 ; mêmes axes pour les trois méthodes.",
+          "type": "image",
+          "src": "plots/rapport_kalman_revu.png",
+          "storage": "linked",
+          "crop": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          },
+          "borderRadius": 0,
+          "edgeFade": 0,
+          "border": {
+            "width": 0,
+            "color": "transparent"
+          },
+          "lockAspectRatio": true,
+          "aspectRatio": 2.413793103448276
+        },
+        {
+          "id": "r5-p3",
+          "morphKey": "r5-p3",
+          "x": 100,
+          "y": 1073,
+          "width": 1040,
+          "height": 85,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 1,
+          "locked": false,
+          "hidden": false,
+          "type": "text",
+          "markdown": "Figure 4 : comparaison avec le calcul utilisant déjà le gyro. Couleurs : tours 1, 2 et 3 ; mêmes axes pour les trois méthodes.",
+          "style": {
+            "fontFamily": "Palatino, \"Palatino Linotype\", \"Times New Roman\", Times, serif",
+            "fontSize": 21,
+            "fontWeight": 400,
+            "color": "#000000",
+            "textAlign": "left",
+            "verticalAlign": "top",
+            "lineHeight": 1.32,
+            "padding": 0
+          }
+        },
+        {
+          "id": "r5-p4",
+          "morphKey": "r5-p4",
+          "x": 100,
+          "y": 1170,
+          "width": 1040,
+          "height": 355,
+          "rotation": 0,
+          "opacity": 1,
+          "z": 1,
+          "locked": false,
+          "hidden": false,
+          "type": "text",
+          "markdown": "Sur les tours 2 et 3, les écarts entre début et fin de tour sont de 216 et 94 mm avec les roues corrigées, de 35 et 65 mm avec l’angle du gyro, et de 37 et 64 mm avec Kalman. Le filtre fait mieux que les roues sur ces deux tours, mais presque pareil que le calcul utilisant déjà le gyro.\n\nOn ne voit donc pas de gain net à ajouter Kalman sur cet essai. Le retour final n’est pas meilleur non plus : 275 mm contre 97 mm avec les angles corrigés. Pour savoir quelle courbe suit le mieux le robot, il faudrait quelques positions mesurées sur le tapis, pas seulement regarder si le dessin se referme.",
+          "style": {
+            "fontFamily": "Palatino, \"Palatino Linotype\", \"Times New Roman\", Times, serif",
+            "fontSize": 26,
+            "fontWeight": 400,
+            "color": "#000000",
+            "textAlign": "left",
+            "verticalAlign": "top",
+            "lineHeight": 1.32,
+            "padding": 0
+          }
+        }
+      ]
+    }
+  ]
+}

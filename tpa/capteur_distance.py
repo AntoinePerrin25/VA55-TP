@@ -57,11 +57,13 @@ class CapteurDistance(object):
         if raw is None:
             return None
         if self.kind == TYPE_IR:
+            if raw >= 100:
+                return None
             mm = int(raw * IR_MM_PER_UNIT)
         else:
             mm = raw
         # 2550 est la valeur d'erreur de l'ultrason, pas un obstacle.
-        if mm <= 0 or mm >= 2500:
+        if mm < 0 or mm >= 2500:
             return None
         return int(mm)
 

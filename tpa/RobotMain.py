@@ -2,7 +2,6 @@
 
 from RobotState import RobotState
 from RobotLineFollower import RobotLineFollower
-from RobotIntersection import RobotIntersection
 
 MODE_BANG_BANG = "bang_bang"
 MODE_PID = "pid"
@@ -23,19 +22,22 @@ AXLE_TRACK_MM = 114.0
 KALMAN_Q = 25.0  # incertitude du taux de rotation odometrique, deg^2/s
 KALMAN_R = 4.0   # incertitude de l'angle gyro, deg^2
 
-# IP de la machine qui fait tourner Mosquitto. Une lettre par brick.
-MQTT_BROKER = "192.168.2.1"
+MQTT_BROKER = "10.37.135.223"
 MQTT_PORT = 1883
 ROBOT_ID = "A"
+START_POSE = (0.0, 0.0, 180.0)  # x, y (mm), cap (degrés) dans le repère du tapis
+HEADING_SIGN = -1  # Le cap doit augmenter dans un virage à gauche.
 
 if __name__ == "__main__":
     robot = RobotState(
         wheel_diameter=WHEEL_DIAMETER_MM, axle_track=AXLE_TRACK_MM,
-        q=KALMAN_Q, r=KALMAN_R, filename="trajectoire.csv")
+        q=KALMAN_Q, r=KALMAN_R, filename="trajectoire.csv", heading_sign=HEADING_SIGN)
     follower = RobotLineFollower(robot)
-    follower.set_intersection(
-        RobotIntersection(robot, ROBOT_ID, MQTT_BROKER, MQTT_PORT))
-    robot.updateLCD("{0}\nconnexion mqtt".format(ROBOT_ID))
+    if EXPERIENCE == EXPERIENCE_TAPIS:
+        from RobotIntersection import RobotIntersection
+        follower.set_intersection(
+            RobotIntersection(robot, ROBOT_ID, MQTT_BROKER, MQTT_PORT, START_POSE))
+        robot.updateLCD("{0}\nconnexion mqtt".format(ROBOT_ID))
     if MODE == MODE_BANG_BANG:
         follower.run_bang_bang("bang_bang.csv")
     else:

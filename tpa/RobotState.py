@@ -58,13 +58,14 @@ class HeadingKalman:
 class RobotState:
     def __init__(self, sensor_port=Port.S1, gyro_port=Port.S3, sample_period_ms=100,
                  wheel_diameter=56.0, axle_track=114.0, q=25.0, r=4.0,
-                 filename="trajectoire.csv"):
+                 filename="trajectoire.csv", heading_sign=1):
         self.ev3 = EV3Brick()
         self.lastColor = None
         self.lastDistance = -1
         self.sample_period_ms = sample_period_ms
         self.wheel_diameter = wheel_diameter
         self.axle_track = axle_track
+        self.heading_sign = heading_sign
         self.LCD = RobotLCD(self.ev3)
         self.sensor = RobotSensor(sensor_port, gyro_port=gyro_port)
         self.drive = RobotDrive(wheel_diameter=wheel_diameter, axle_track=axle_track)
@@ -76,6 +77,7 @@ class RobotState:
             "q_deg2_s": q,
             "r_deg2": r,
             "sample_ms": sample_period_ms,
+            "heading_sign": heading_sign,
         })
         self.own_screen = False
         self.reset_localization()
@@ -119,7 +121,7 @@ class RobotState:
         if dt <= 0.0 or dt > 0.2:
             return
         self.command_distance += self.drive.command_speed_mm_s * dt
-        self.command_heading += self.drive.command_turn_rate_deg_s * dt
+        self.command_heading += self.heading_sign * self.drive.command_turn_rate_deg_s * dt
 
     def reset_localization(self):
         self.drive.reset_distance()
@@ -158,12 +160,16 @@ class RobotState:
             return self.pose
         self._last_sample_ms = now
         distance, speed, odometry_angle, turn_rate = self.drive.state()
+        odometry_angle *= self.heading_sign
+        turn_rate *= self.heading_sign
         delta_odometry = distance - self._last_distance
         delta_command = self.command_distance - self._last_command_distance
         self._last_distance = distance
         self._last_command_distance = self.command_distance
         self.odometry_heading = odometry_angle
         gyro_angle = self.sensor.gyro_angle()
+        if gyro_angle is not None:
+            gyro_angle *= self.heading_sign
         gyro_rate = None
         if gyro_angle is not None and self._last_gyro_angle is not None and dt > 0.0:
             gyro_rate = (gyro_angle - self._last_gyro_angle) / dt
@@ -188,7 +194,7 @@ class RobotState:
             "dt_s": dt,
             "lap": self.lap,
             "command_speed_mm_s": self.drive.command_speed_mm_s,
-            "command_turn_rate_deg_s": self.drive.command_turn_rate_deg_s,
+            "command_turn_rate_deg_s": self.heading_sign * self.drive.command_turn_rate_deg_s,
             "command_distance_mm": self.command_distance,
             "command_heading_deg": self.command_heading,
             "x_command_mm": self.poses["command"][0],

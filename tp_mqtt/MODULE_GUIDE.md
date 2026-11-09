@@ -1,47 +1,83 @@
-# MQTT — intersection du huit
+# TP MQTT · lancement
 
-## Purpose
+## 1. Sur le PC
 
-Simuler deux robots sur le huit et laisser Node-RED accorder le croisement, sans le brick.
+Mettre le PC et les EV3 sur le même réseau. Les commandes se lancent depuis la racine du dépôt, avec Mosquitto, Node.js avec npm et Python 3.10 ou plus récent installés.
 
-## Open this module when
+**Terminal 1 · broker local**
 
-Changer le feu, les topics MQTT, les zones d'arrêt, ou la vue du circuit.
+```sh
+mosquitto -c tp_mqtt/mosquitto.conf
+```
 
-## Ownership
+**Terminal 2 · contrôleur**
 
-Ce module possède le circuit rejoué, la simulation et le flux Node-RED. Il ne possède pas l'asservissement du brick (`tpa/`) : odométrie, gyro et Kalman y restent. La ligne suivie ici est la commande du premier tour de `trajectoire_2.csv`, refermée sur le départ (écart 90 mm). Le Kalman de ce tour reste ouvert de 288 mm, il ne sert pas de géométrie.
+Installer Node-RED une seule fois.
 
-## Behavior and interactions
+```sh
+npm install -g node-red
+```
 
-Deux robots suivent le même huit, dans le même sens. A et B partent à 200 mm/s, décalés d'un demi-tour. Le bouton de la vue en ajoute d'autres, avec leur propre consigne, sur le plus grand intervalle libre. Chacun publie `robots/{id}/state` (QoS 0).
+Puis lancer le contrôleur à chaque séance.
 
-Le capteur regarde celui de devant, jusqu'à 800 mm le long du circuit. La garde est de 280 mm : un robot plus rapide ralentit et s'aligne, il ne comble pas cet écart. Le disque de conflit fait 220 mm. Tant qu'il est vide, la voie est libre. Dès qu'un robot y entre, les autres s'arrêtent avant le disque de stockage (480 mm).
+```sh
+node-red
+```
 
-Node-RED publie `intersection/phase` (QoS 1, retenu) : `open`, `occupied` ou `all_red`. Le brick dans `tpa/` s'abonne au même message et publie `robots/{id}/state`. La vue `http://127.0.0.1:8765` dessine l'unique trajectoire, le trait du capteur et le feu.
+Ouvrir [l’éditeur Node-RED](http://127.0.0.1:1880), importer `tp_mqtt/intersection-flow.json` et cliquer sur **Déployer**. Le flux utilise le broker local sur le port `1883`.
 
-## Entry points
+**Terminal 3 · vue du huit**
 
-| Fichier | Rôle |
-| --- | --- |
-| `circuit.py` | Découpe le huit et les abscisses d'arrêt |
-| `simulate.py` | Robots, client MQTT, page |
-| `intersection-flow.json` | Flux importé dans Node-RED |
-| `mosquitto.conf` | Broker local, port 1883, anonyme |
-| `view.html` | Dessin du circuit |
+Installer les dépendances la première fois.
 
-## Change map
+```sh
+python3 -m venv tp_mqtt/.venv
+tp_mqtt/.venv/bin/pip install -r tp_mqtt/requirements.txt
+```
 
-| To change... | Start with... | Verify with... |
-| --- | --- | --- |
-| Qui a le droit d'entrer | `_step` dans `simulate.py` et le nœud « voie libre » | un robot arrêté repart dès que l'autre quitte `conflit` |
-| Rayons des zones | `circuit.py` | la vue, un seul trait, deux passages au centre |
-| Topics | `simulate.py` et `intersection-flow.json` | `mosquitto_sub -t 'intersection/phase' -v` |
+Choisir une commande selon l’essai, puis ouvrir [la vue du huit](http://127.0.0.1:8765).
 
-## Dependencies
+```sh
+./tp_mqtt/run.sh            # essai sans EV3 : deux robots simulés
+./tp_mqtt/run.sh --observe  # essai avec EV3 : affichage seul
+```
 
-Mosquitto sur `127.0.0.1:1883`, Node-RED sur `127.0.0.1:1880`, `paho-mqtt` dans `.venv`. Le broker actuel n'écoute que la machine locale.
+## 2. Sur chaque EV3
 
-## Invariants and hazards
+Brancher le capteur de couleur en **S1**, la distance en **S2**, le gyro en **S3** et les moteurs en **B/C**. Avant de copier les scripts, régler [`tpa/RobotMain.py`](../tpa/RobotMain.py) pour le brick.
 
-Un robot dont le disque est vide ne doit pas rester à l'arrêt : `_step` ne bloque que si un autre robot est déjà dans `conflit`. Les deux passages du huit sont le même croisement physique. La modulation de vitesse, pour ne plus s'arrêter du tout, n'est pas dans ce flux.
+- `MQTT_BROKER` est l’IP du PC qui héberge Mosquitto. `MQTT_PORT` vaut `1883` par défaut.
+- `ROBOT_ID` est propre au robot, par exemple `A` ou `B`.
+- `START_POSE` donne la pose au départ dans le repère du tracé TP2, en mm et degrés. Pour partir vers la gauche depuis le milieu du haut du huit, utiliser `(0, 0, 180)`. Sur l’EV3 A, `INVERT_POSE_Y = True` corrige le signe de Y et du cap local avant la rotation vers le repère du tapis.
+
+Depuis le PC, remplacer `IP_EV3` par l’adresse du brick et copier les scripts.
+
+```bash
+ssh robot@10.37.135.215 'mkdir -p /home/robot/tpa'
+scp tpa/Robot{Main,State,Drive,Sensor,LCD,Logger,LineFollower,Intersection}.py \
+    tpa/{intersection,capteur_distance}.py robot@10.37.135.215:/home/robot/tpa/
+ssh robot@10.37.135.215
+```
+
+Depuis la session SSH sur l’EV3, lancer le programme.
+
+```sh
+cd /home/robot/tpa
+brickrun -r -- pybricks-micropython RobotMain.py
+```
+
+Le bouton central arrête le robot. Commencer avec un seul EV3 pour vérifier sa position dans la vue et son point d’arrêt sur le tapis.
+
+## 3. Rejoindre le broker commun aux groupes
+
+1. Mettre les PC et les EV3 sur le réseau du TP. Récupérer l’adresse et le port du broker commun. Le code actuel utilise MQTT sur TCP, sans nom d’utilisateur, mot de passe ni TLS.
+2. Sur chaque EV3, régler `MQTT_BROKER` et `MQTT_PORT` dans `RobotMain.py`, puis recopier ce fichier et relancer le programme. Choisir un `ROBOT_ID` unique parmi **tous** les groupes, par exemple `G2_A`. Le contrôleur accepte les lettres majuscules, les chiffres, `_` et `-`, sur 16 caractères maximum. Aligner aussi les poses de départ sur le même repère si les robots partagent le tapis.
+3. Pour le croisement commun, **un seul contrôleur** doit publier sur `intersection/phase`. Si votre groupe assure ce rôle avec Node-RED, ouvrir le nœud **états robots**, éditer le serveur MQTT **Mosquitto local**, renseigner l’adresse et le port communs, puis déployer. Les nœuds d’entrée et de sortie utilisent le même serveur. Si un contrôleur est déjà en place, rejoindre le broker comme robot ou observateur. Pour que les EV3 acceptent ses phases, il doit publier `mode: acces_cooperatif` et une liste `green` contenant au plus un identifiant.
+4. Sur le PC, remplacer `IP_BROKER_COMMUN` et `1883` par les valeurs données en séance pour afficher la vue ou suivre les messages MQTT.
+
+```sh
+./tp_mqtt/run.sh --observe --broker IP_BROKER_COMMUN --port 1883
+mosquitto_sub -h IP_BROKER_COMMUN -p 1883 -t 'robots/+/state' -t intersection/phase -q 1 -v
+```
+
+[Rapport Slidepix](rapport.slidepix.json)

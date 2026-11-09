@@ -1,143 +1,119 @@
 #!/usr/bin/env pybricks-micropython
 
 import _thread
+from math import cos, pi, sin
 
-from pybricks.tools import wait
+import ujson
+from pybricks.tools import StopWatch, wait
+from umqtt.simple import MQTTClient, MQTTException
 
 from capteur_distance import CapteurDistance
 from intersection import (
-    distance_to_crossing,
-    speed_command,
+    CONFLICT_RADIUS_MM, PHASE_TIMEOUT_MS, crossing_state,
+    distance_to_crossing, speed_command,
 )
 
+PHASE_TOPIC = b"intersection/phase"
+COMM_PERIOD_MS = 50
 
-class RobotIntersection(object):
-    """Publie l'état Kalman et applique le feu plus le capteur de distance."""
 
-    def __init__(self, robot, robot_id, broker, port=1883):
+class RobotIntersection:
+    """Le PID pilote les moteurs. Ce module limite sa vitesse et échange par MQTT."""
+
+    def __init__(self, robot, robot_id, broker, port=1883, start_pose=(0, 0, 0)):
         self.robot = robot
         self.robot_id = robot_id
         self.broker = broker
         self.port = port
-        self._phase = None
-        self._clearing = False
-        self._run = True
-        self._client = None
-        self._connected = False
-        self._outgoing = None
-        self._topic = "robots/{0}/state".format(robot_id)
-        self._screen_ms = 0
-        self._range = None
-        try:
-            self._range = CapteurDistance()
-        except Exception:
-            self._range = None
+        self.start_pose = start_pose
+        angle = start_pose[2] * pi / 180
+        self.cos_start = cos(angle)
+        self.sin_start = sin(angle)
+        self.watch = StopWatch()
+        self.phase = None
+        self.passage = "ligne"
+        self.crossed = False
+        self.running = True
+        self.state = None
+        self.state_topic = ("robots/{0}/state".format(robot_id)).encode()
+        self.screen_ms = -300
+        self.sensor_ms = -COMM_PERIOD_MS
+        self.sensor = CapteurDistance()
+        self.sensor_mm = None
         self.robot.own_screen = True
-        _thread.start_new_thread(self._comm, ())
+        _thread.start_new_thread(self.communicate, ())
 
     def limit(self, speed):
-        pose = self.robot.poses.get("kalman") or (0.0, 0.0, 0.0)
-        dist = distance_to_crossing(pose[0], pose[1])
-        sensor = None
-        if self._range is not None:
-            sensor = self._range.distance()
-        limited, zone, self._clearing = speed_command(
-            speed, dist, self._clearing, self._phase, self.robot_id, sensor
-        )
-        self._outgoing = _encode({
+        x, y, heading = self.robot.poses["kalman"]
+        x0, y0, heading0 = self.start_pose
+        x, y = (x0 + x * self.cos_start - y * self.sin_start,
+                y0 + x * self.sin_start + y * self.cos_start)
+        distance = distance_to_crossing(x, y)
+        now = self.watch.time()
+        phase = self.phase
+        fresh = phase is not None and now - phase[0] < PHASE_TIMEOUT_MS
+        permitted = fresh and self.robot_id in phase[1]
+
+        if now - self.sensor_ms >= COMM_PERIOD_MS:
+            self.sensor_mm = self.sensor.distance()
+            self.sensor_ms = now
+        zone, self.passage, self.crossed = crossing_state(
+            distance, self.passage, self.crossed, permitted)
+        limited = speed_command(speed, distance, self.passage, self.sensor_mm)
+        self.state = {
             "id": self.robot_id,
-            "lane": "huit",
-            "x_mm": round(pose[0], 1),
-            "y_mm": round(pose[1], 1),
-            "heading_deg": round(pose[2], 1),
-            "speed_mm_s": round(limited, 1),
+            "x_mm": round(x, 1),
+            "y_mm": round(y, 1),
+            "heading_deg": round(heading + heading0, 1),
+            "speed_mm_s": round(limited * pi * self.robot.wheel_diameter / 360, 1),
             "zone": zone,
-            "distance_to_conflict_mm": round(max(0.0, dist - 220.0), 1),
-            "sensor_mm": None if sensor is None else int(sensor),
-            "leader_id": None,
-        })
-        self._screen(zone, limited, sensor)
+            "passage": self.passage,
+            "distance_to_conflict_mm": round(max(0.0, distance - CONFLICT_RADIUS_MM), 1),
+            "sensor_mm": self.sensor_mm,
+        }
+
+        if now - self.screen_ms >= 300:
+            sensor = "--" if self.sensor_mm is None else str(self.sensor_mm)
+            light = self.passage if fresh else "sans MQTT"
+            self.robot.updateLCD("{0} {1}\n{2} mm".format(self.robot_id, light, sensor))
+            self.screen_ms = now
         return limited
 
     def close(self):
-        self._run = False
+        self.running = False
 
-    def _screen(self, zone, speed, sensor):
-        now = self.robot.watch.time()
-        if now - self._screen_ms < 200:
+    def on_message(self, topic, message):
+        try:
+            body = ujson.loads(message.decode())
+        except ValueError:
             return
-        self._screen_ms = now
-        if zone == "conflit":
-            light = "conflit"
-        elif sensor is not None and sensor <= 280:
-            light = "suivi"
-        elif zone == "stockage" and speed == 0:
-            light = "rouge"
-        elif self._connected:
-            light = "libre"
-        else:
-            light = "sans mqtt"
-        if sensor is None:
-            second = "capteur --"
-        else:
-            second = "capteur {0}".format(int(sensor))
-        self.robot.updateLCD("{0} {1}\n{2}".format(self.robot_id, light, second))
+        if (topic == PHASE_TOPIC and isinstance(body, dict)
+                and body.get("mode") == "acces_cooperatif"
+                and isinstance(body.get("green"), list)
+                and len(body["green"]) <= 1):
+            self.phase = (self.watch.time(), body["green"])
 
-    def _connect(self):
-        try:
-            from umqtt.robust import MQTTClient
-        except ImportError:
-            from umqtt.simple import MQTTClient
-        try:
-            client = MQTTClient(self.robot_id, self.broker, port=self.port)
-            client.set_callback(self._on_message)
-            client.connect()
-            client.subscribe("intersection/phase")
-        except Exception:
-            self._client = None
-            self._connected = False
-            return
-        self._client = client
-        self._connected = True
-
-    def _on_message(self, topic, msg):
-        try:
-            import ujson as json
-        except ImportError:
-            import json
-        if not isinstance(msg, str):
-            msg = msg.decode("utf-8")
-        try:
-            payload = json.loads(msg)
-        except Exception:
-            return
-        if isinstance(payload, dict) and "phase" in payload:
-            self._phase = payload
-
-    def _comm(self):
-        while self._run:
-            if self._client is None:
-                self._connect()
-                wait(500)
-                continue
-            payload = self._outgoing
-            self._outgoing = None
+    def communicate(self):
+        while self.running:
+            client = MQTTClient(self.robot_id.encode(), self.broker,
+                                port=self.port, keepalive=15)
+            client.set_callback(self.on_message)
             try:
-                if payload is not None:
-                    self._client.publish(self._topic, payload)
-                self._client.check_msg()
-            except Exception:
-                self._client = None
-                self._connected = False
-            wait(50)
-
-
-def _encode(payload):
-    try:
-        import ujson as json
-    except ImportError:
-        import json
-    text = json.dumps(payload)
-    if isinstance(text, str):
-        return text.encode("utf-8")
-    return text
+                client.connect()
+                client.subscribe(PHASE_TOPIC, qos=1)
+                while self.running:
+                    state = self.state
+                    if state is not None:
+                        client.publish(self.state_topic, ujson.dumps(state).encode(), qos=0)
+                    client.check_msg()
+                    wait(COMM_PERIOD_MS)
+            except (OSError, ValueError, MQTTException) as error:
+                print("MQTT:", error)
+            finally:
+                self.phase = None
+                try:
+                    client.disconnect()
+                except (OSError, AttributeError):
+                    pass
+            if self.running:
+                wait(500)

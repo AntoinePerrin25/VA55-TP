@@ -14,6 +14,8 @@ from pathlib import Path
 
 CONFLICT_RADIUS_MM = 220.0
 STORAGE_RADIUS_MM = 480.0
+STOP_RADIUS_MM = 560.0
+CLEAR_RADIUS_MM = 320.0
 SAMPLE_MM = 20.0
 CRUISE_MM_S = 200.0
 MIN_CROSSING_GAP = 40
@@ -22,8 +24,10 @@ MIN_CROSSING_GAP = 40
 @dataclass(frozen=True)
 class Gate:
     stop_s: float
+    storage_entry_s: float
     entry_s: float
     exit_s: float
+    clear_s: float
     storage_exit_s: float
 
 
@@ -78,7 +82,7 @@ class Loop:
         for gate in self.gates:
             if gate.entry_s <= s <= gate.exit_s:
                 return "conflit"
-            if gate.stop_s < s < gate.entry_s:
+            if gate.storage_entry_s <= s < gate.entry_s:
                 return "stockage"
             if gate.exit_s < s <= gate.storage_exit_s:
                 return "sortie"
@@ -105,7 +109,7 @@ class Loop:
 @dataclass(frozen=True)
 class Circuit:
     center: tuple[float, float]
-    loops: tuple[Loop, Loop]
+    loops: tuple[Loop, ...]
     conflict_radius_mm: float
     storage_radius_mm: float
     cruise_mm_s: float
@@ -151,6 +155,8 @@ def _read_command_lap(csv_path: Path, lap: int) -> list[tuple[float, float]]:
 
 
 def _dedupe(points: list[tuple[float, float]]) -> list[tuple[float, float]]:
+    if not points:
+        return []
     kept = [points[0]]
     for point in points[1:]:
         if math.hypot(point[0] - kept[-1][0], point[1] - kept[-1][1]) >= 1.0:
@@ -251,10 +257,16 @@ def _mark_gates(
     gates: list[Gate] = []
     previous = 0
     for entry, exit_index in runs:
-        stop = entry
-        while stop > previous and distance[stop] < STORAGE_RADIUS_MM:
+        storage_entry = entry
+        while storage_entry > previous and distance[storage_entry - 1] <= STORAGE_RADIUS_MM:
+            storage_entry -= 1
+        stop = storage_entry
+        while stop > previous and distance[stop] < STOP_RADIUS_MM:
             stop -= 1
-        storage_exit = exit_index
+        clear = exit_index
+        while distance[clear] < CLEAR_RADIUS_MM:
+            clear += 1
+        storage_exit = clear
         while (
             storage_exit + 1 < len(distance)
             and distance[storage_exit] < STORAGE_RADIUS_MM
@@ -262,11 +274,14 @@ def _mark_gates(
             storage_exit += 1
         gate = Gate(
             stop_s=samples[stop][2],
+            storage_entry_s=samples[storage_entry][2],
             entry_s=samples[entry][2],
             exit_s=samples[exit_index][2],
+            clear_s=samples[clear][2],
             storage_exit_s=samples[min(storage_exit, len(samples) - 1)][2],
         )
-        if not (0 < gate.stop_s < gate.entry_s < gate.exit_s < gate.storage_exit_s < length):
+        if not (0 < gate.stop_s < gate.storage_entry_s < gate.entry_s < gate.exit_s
+                < gate.clear_s < gate.storage_exit_s < length):
             raise ValueError(f"passage invalide: {gate}")
         gates.append(gate)
         previous = storage_exit

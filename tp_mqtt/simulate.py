@@ -1,21 +1,19 @@
 #!/usr/bin/env python3
-"""Robots sur le huit. Le feu suit l'occupation du croisement.
-
-Chaque robot mesure l'arc jusqu'à celui qui le précède. Il ne franchit pas
-la distance de suivi, même si sa consigne est plus élevée.
-"""
+"""Simule le huit ou affiche la télémétrie des EV3 sur le même plan."""
 
 from __future__ import annotations
 
+import argparse
 import json
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from uuid import uuid4
 
 import paho.mqtt.client as mqtt
 
-from circuit import CRUISE_MM_S, load_circuit
+from circuit import CRUISE_MM_S, STOP_RADIUS_MM, load_circuit
 
 ROOT = Path(__file__).resolve().parent
 CSV_PATH = ROOT.parent / "trajectoire_2.csv"
@@ -29,6 +27,8 @@ FOLLOW_GAP_MM = 280.0
 SENSOR_RANGE_MM = 800.0
 MIN_CRUISE_MM_S = 40.0
 MAX_CRUISE_MM_S = 500.0
+REQUEST_BEFORE_STOP_MM = 160.0
+PHASE_TIMEOUT_S = 0.75
 
 
 class Robot:
@@ -41,32 +41,34 @@ class Robot:
         self.lap = 1
         self.sensor_mm = None
         self.leader_id = None
+        self.passage = "ligne"
 
-    @property
-    def lane(self) -> str:
-        return self.robot_id
+    def distance_to_stop(self) -> float:
+        return (self.loop.next_gate(self.s).stop_s - self.s) % self.loop.length
 
-    def advance(self, dt: float, may_enter: bool, speed_cap: float, max_step: float) -> None:
-        step = min(max(0.0, speed_cap) * dt, max(0.0, max_step))
+    def advance(self, dt: float, permitted: bool, speed_cap: float, max_step: float) -> None:
+        step = min(speed_cap * dt, max_step)
         gate = self.loop.next_gate(self.s)
-        if not may_enter and self.s <= gate.stop_s:
-            gap = (gate.stop_s - self.s) % self.loop.length
-            if gap <= step:
-                self.s = gate.stop_s
-                self.speed = 0.0
-                return
-        if not may_enter and gate.stop_s < self.s < gate.entry_s:
-            self.speed = 0.0
-            return
+        if self.passage == "engage":
+            if self.s + step >= gate.clear_s:
+                self.passage = "libere"
+        elif self.distance_to_stop() <= step:
+            if permitted:
+                self.passage = "engage"
+            else:
+                step = self.distance_to_stop()
         self.s += step
         if self.s >= self.loop.length:
             self.s %= self.loop.length
             self.lap += 1
-        self.speed = step / dt if dt else 0.0
+        self.speed = step / dt
 
     def snapshot(self) -> dict:
         x, y, heading = self.loop.pose(self.s)
         zone = self.loop.zone(self.s)
+        passage = self.passage
+        if passage != "engage" and self.distance_to_stop() <= REQUEST_BEFORE_STOP_MM:
+            passage = "approche"
         return {
             "id": self.robot_id,
             "lane": self.loop.lane,
@@ -76,6 +78,7 @@ class Robot:
             "heading_deg": round(heading, 1),
             "speed_mm_s": round(self.speed, 1),
             "zone": zone,
+            "passage": passage,
             "distance_to_conflict_mm": round(self.loop.distance_to_conflict(self.s), 1),
             "progress_mm": round(self.s, 1),
             "lap": self.lap,
@@ -108,8 +111,7 @@ def _speed_cap(robot: Robot, leader: Robot | None, gap: float) -> float:
     return max(0.0, min(robot.cruise, capped))
 
 
-def _step(robots: list[Robot], dt: float) -> None:
-    """Le plus proche du croisement bouge en premier. Le capteur limite le pas vers l'avant."""
+def _step(robots: list[Robot], dt: float, green: list[str]) -> None:
     plans = []
     for robot in robots:
         leader, gap = _ahead(robot, robots)
@@ -117,122 +119,58 @@ def _step(robots: list[Robot], dt: float) -> None:
         robot.leader_id = leader.robot_id if robot.sensor_mm is not None else None
         room = robot.loop.length if leader is None else max(0.0, gap - FOLLOW_GAP_MM)
         plans.append((robot, _speed_cap(robot, leader, gap), room))
-    ordered = sorted(plans, key=lambda item: item[0].loop.distance_to_conflict(item[0].s))
-    for robot, cap, room in ordered:
-        occupied = any(
-            other is not robot and other.loop.zone(other.s) == "conflit" for other in robots
-        )
-        robot.advance(dt, may_enter=not occupied, speed_cap=cap, max_step=room)
-
-
-def self_check() -> None:
-    circuit = load_circuit(CSV_PATH)
-    track = circuit.loops[0]
-    gate = track.gates[0]
-    waiting = Robot("A", track, gate.stop_s - 40.0)
-    inside = Robot("B", track, (gate.entry_s + gate.exit_s) / 2.0)
-    for _ in range(8):
-        _step([waiting, inside], TICK_S)
-    if waiting.speed != 0.0 or waiting.s > gate.stop_s:
-        raise RuntimeError("A avance alors que B est dans le croisement")
-    inside.s = gate.storage_exit_s + 40.0
-    _step([waiting, inside], TICK_S)
-    if waiting.speed <= 0.0:
-        raise RuntimeError("A reste arrêté alors que le croisement est libre")
-
-    cruise = [
-        Robot("A", track, 0.0),
-        Robot("B", track, track.length / 2.0),
-    ]
-    held_while_empty = 0
-    for _ in range(int(60.0 / TICK_S)):
-        _step(cruise, TICK_S)
-        zones = [robot.loop.zone(robot.s) for robot in cruise]
-        if zones.count("conflit") > 1:
-            raise RuntimeError("les deux robots sont dans le croisement")
-        if "conflit" not in zones:
-            held_while_empty += sum(robot.speed == 0.0 for robot in cruise)
-    if held_while_empty:
-        raise RuntimeError(f"arrêt alors que le croisement est vide: {held_while_empty} pas")
-
-    leader = Robot("A", track, 2500.0, cruise=100.0)
-    chaser = Robot("B", track, 2500.0 - 450.0, cruise=320.0)
-    smallest = track.length
-    for _ in range(int(8.0 / TICK_S)):
-        _step([leader, chaser], TICK_S)
-        gap = (leader.s - chaser.s) % track.length
-        smallest = min(smallest, gap)
-    if smallest < FOLLOW_GAP_MM - 1.0:
-        raise RuntimeError(f"le suiveur entre dans la garde: {smallest:.0f} mm")
-    gap = (leader.s - chaser.s) % track.length
-    if gap > FOLLOW_GAP_MM + 40.0 or chaser.speed > leader.speed + 30.0:
-        raise RuntimeError(
-            f"le plus rapide ne s'aligne pas: écart {gap:.0f} mm, "
-            f"{chaser.speed:.0f} contre {leader.speed:.0f} mm/s"
-        )
-
-    parked = Robot("A", track, 2000.0, cruise=0.0)
-    behind = Robot("B", track, 2000.0 - 600.0, cruise=250.0)
-    for _ in range(int(8.0 / TICK_S)):
-        _step([parked, behind], TICK_S)
-    gap = (parked.s - behind.s) % track.length
-    if gap < FOLLOW_GAP_MM - 1.0 or behind.speed > 5.0 or abs(parked.s - 2000.0) > 1.0:
-        raise RuntimeError(
-            f"le suiveur pousse un robot arrêté: écart {gap:.0f} mm, vitesse {behind.speed:.0f}"
-        )
+    for robot, cap, room in plans:
+        robot.advance(dt, robot.robot_id in green, cap, room)
 
 
 class Scene:
-    def __init__(self, circuit):
+    def __init__(self, circuit, observe: bool):
         self.circuit = circuit
+        self.observe = observe
         track = circuit.loops[0]
-        self.robots = [
+        self.robots = [] if observe else [
             Robot("A", track, 0.0),
             Robot("B", track, track.length / 2.0),
         ]
-        self.phase = {
-            "phase": "open",
-            "green": ["A", "B"],
-            "all_red": False,
-            "occupied_by": None,
-        }
+        self.phase = None
+        self.phase_at = 0.0
+        self.telemetry = {}
         self.lock = threading.Lock()
         self.started = time.monotonic()
 
-    def set_phase(self, payload: dict) -> None:
-        # Le droit de passage affiché est recalculé dans tick à partir des zones.
-        # Un feu minuté retenu sur le broker ne doit pas figer un robot hors du disque.
-        return
+    def set_phase(self, payload: dict | None) -> None:
+        with self.lock:
+            self.phase = payload
+            self.phase_at = time.monotonic()
+
+    def set_telemetry(self, state: dict) -> None:
+        with self.lock:
+            self.telemetry[state["id"]] = (time.monotonic(), state)
+
+    def current_phase(self) -> dict | None:
+        if time.monotonic() - self.phase_at < PHASE_TIMEOUT_S:
+            return self.phase
+        return None
 
     def tick(self, dt: float) -> list[dict]:
         with self.lock:
-            _step(self.robots, dt)
-            robots = [robot.snapshot() for robot in self.robots]
-            inside = [robot["id"] for robot in robots if robot["zone"] == "conflit"]
-            if inside:
-                self.phase = {
-                    "phase": "occupied",
-                    "green": inside,
-                    "all_red": False,
-                    "occupied_by": inside[0],
-                }
-            else:
-                self.phase = {
-                    "phase": "open",
-                    "green": [robot["id"] for robot in robots],
-                    "all_red": False,
-                    "occupied_by": None,
-                }
-            return robots
+            if self.observe:
+                now = time.monotonic()
+                return [state for seen, state in self.telemetry.values() if now - seen < 2.0]
+            phase = self.current_phase()
+            _step(self.robots, dt, phase["green"] if phase else [])
+            return [robot.snapshot() for robot in self.robots]
 
     def add_robot(self, cruise: float) -> dict:
+        if self.observe:
+            raise RuntimeError("observation des EV3")
         if not MIN_CRUISE_MM_S <= cruise <= MAX_CRUISE_MM_S:
             raise ValueError(
                 f"vitesse entre {MIN_CRUISE_MM_S:.0f} et {MAX_CRUISE_MM_S:.0f} mm/s"
             )
         with self.lock:
             track = self.circuit.loops[0]
-            position = _spawn_s(self.robots, track.length)
+            position = _spawn_s(self.robots, track)
             if position is None:
                 raise RuntimeError("plus de place sur le huit")
             robot = Robot(_next_id(self.robots), track, position, cruise)
@@ -241,10 +179,12 @@ class Scene:
 
     def document(self, robots: list[dict]) -> dict:
         with self.lock:
-            phase = dict(self.phase)
+            phase = self.current_phase()
         return {
             "time_s": round(time.monotonic() - self.started, 2),
             "phase": phase,
+            "observe": self.observe,
+            "stop_radius_mm": STOP_RADIUS_MM,
             "center": [round(self.circuit.center[0], 1), round(self.circuit.center[1], 1)],
             "conflict_radius_mm": self.circuit.conflict_radius_mm,
             "storage_radius_mm": self.circuit.storage_radius_mm,
@@ -260,23 +200,20 @@ class Scene:
         }
 
 
-def _spawn_s(robots: list[Robot], length: float) -> float | None:
-    if not robots:
-        return 0.0
-    positions = sorted(robot.s % length for robot in robots)
-    best_gap = -1.0
-    best_s = 0.0
-    for index, position in enumerate(positions):
-        nxt = positions[(index + 1) % len(positions)]
-        gap = (nxt - position) % length
-        if gap == 0.0:
-            gap = length
-        if gap > best_gap:
-            best_gap = gap
-            best_s = position
-    if best_gap < FOLLOW_GAP_MM * 2.0 + 40.0:
-        return None
-    return (best_s + best_gap / 2.0) % length
+def _spawn_s(robots: list[Robot], track) -> float | None:
+    positions = sorted(robot.s for robot in robots)
+    candidates = []
+    for i, start in enumerate(positions):
+        end = positions[i + 1] if i + 1 < len(positions) else positions[0] + track.length
+        gap = end - start
+        if gap < 2 * FOLLOW_GAP_MM + 40:
+            continue
+        middle = (start + gap / 2) % track.length
+        gate = track.next_gate(middle)
+        if gate.stop_s <= middle <= gate.storage_exit_s:
+            continue
+        candidates.append((gap, middle))
+    return max(candidates)[1] if candidates else None
 
 
 def _next_id(robots: list[Robot]) -> str:
@@ -311,6 +248,8 @@ def serve(scene: Scene, latest: dict) -> None:
             raw = self.rfile.read(length) if length else b"{}"
             try:
                 payload = json.loads(raw.decode("utf-8") or "{}")
+                if not isinstance(payload, dict):
+                    raise ValueError("objet JSON attendu")
                 cruise = float(payload.get("speed_mm_s", 280))
                 robot = scene.add_robot(cruise)
             except (json.JSONDecodeError, TypeError, ValueError) as exc:
@@ -338,63 +277,76 @@ def serve(scene: Scene, latest: dict) -> None:
     thread.start()
 
 
-def listen(scene: Scene) -> mqtt.Client:
-    client = mqtt.Client(
-        mqtt.CallbackAPIVersion.VERSION2,
-        client_id="sim-huit",
-        protocol=mqtt.MQTTv311,
-    )
+def listen(scene: Scene, broker: str, port: int) -> mqtt.Client:
+    client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, protocol=mqtt.MQTTv311)
 
     def on_connect(client, userdata, flags, reason_code, properties):
         if reason_code != 0:
             print(f"MQTT refusé: {reason_code}")
             return
         client.subscribe(PHASE_TOPIC, qos=1)
+        if scene.observe:
+            client.subscribe("robots/+/state", qos=0)
+
+    def on_disconnect(client, userdata, flags, reason_code, properties):
+        scene.set_phase(None)
 
     def on_message(client, userdata, message):
+        if message.retain:
+            return
         try:
             payload = json.loads(message.payload.decode("utf-8"))
-        except json.JSONDecodeError:
-            print("phase illisible:", message.payload)
+        except (UnicodeError, ValueError):
             return
-        if isinstance(payload, dict) and "phase" in payload:
-            scene.set_phase(payload)
+        if not isinstance(payload, dict):
+            return
+        if message.topic == PHASE_TOPIC:
+            green = payload.get("green")
+            if payload.get("mode") == "acces_cooperatif" and isinstance(green, list) and len(green) <= 1:
+                scene.set_phase(payload)
+        elif scene.observe and payload.get("id"):
+            pose = ("x_mm", "y_mm", "heading_deg")
+            if all(isinstance(payload.get(key), (int, float)) for key in pose):
+                scene.set_telemetry(payload)
 
     client.on_connect = on_connect
+    client.on_disconnect = on_disconnect
     client.on_message = on_message
     client.reconnect_delay_set(min_delay=1, max_delay=5)
-    client.connect(BROKER_HOST, BROKER_PORT, keepalive=30)
+    client.connect(broker, port, keepalive=15)
     client.loop_start()
     return client
 
 
 def main() -> None:
-    self_check()
-    circuit = load_circuit(CSV_PATH)
-    scene = Scene(circuit)
-    latest = {"doc": scene.document([robot.snapshot() for robot in scene.robots])}
-    serve(scene, latest)
-    client = listen(scene)
-    print(f"vue http://127.0.0.1:{HTTP_PORT}  broker {BROKER_HOST}:{BROKER_PORT}")
-    published = 0.0
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--broker", default=BROKER_HOST)
+    parser.add_argument("--port", type=int, default=BROKER_PORT)
+    parser.add_argument("--observe", action="store_true", help="afficher les EV3 sans simuler de robots")
+    args = parser.parse_args()
+    scene = Scene(load_circuit(CSV_PATH), args.observe)
+    simulation_session = uuid4().hex
+    latest = {"doc": scene.document(scene.tick(TICK_S))}
+    client = listen(scene, args.broker, args.port)
+    print(f"Vue http://127.0.0.1:{HTTP_PORT} · MQTT {args.broker}:{args.port}", flush=True)
     try:
+        serve(scene, latest)
+        published = 0.0
         while True:
             robots = scene.tick(TICK_S)
             latest["doc"] = scene.document(robots)
             published += TICK_S
-            if published >= PUBLISH_S:
+            if not args.observe and published >= PUBLISH_S:
                 published = 0.0
                 for robot in robots:
-                    client.publish(
-                        f"robots/{robot['id']}/state",
-                        json.dumps(robot),
-                        qos=0,
-                        retain=False,
-                    )
+                    state = dict(robot, simulation_session=simulation_session)
+                    client.publish(f"robots/{robot['id']}/state", json.dumps(state), qos=0)
             time.sleep(TICK_S)
     except KeyboardInterrupt:
-        client.loop_stop()
+        pass
+    finally:
         client.disconnect()
+        client.loop_stop()
 
 
 if __name__ == "__main__":

@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8">
-  <title>Huit — feu coopératif</title>
+  <title>Huit · accès coopératif</title>
   <style>
     body { margin: 0; font: 16px/1.4 Palatino, "Palatino Linotype", serif; color: #1c1c1c; background: #f4f1ea; }
     main { display: grid; grid-template-columns: 1fr 320px; min-height: 100vh; }
@@ -11,6 +11,7 @@
     h1 { font-size: 22px; font-weight: 600; margin: 0 0 8px; }
     p { margin: 0 0 16px; }
     form { display: flex; flex-direction: column; gap: 8px; margin: 0 0 16px; }
+    form[hidden] { display: none; }
     label { font-size: 14px; color: #6d655a; }
     input, button { font: inherit; }
     input { width: 100%; box-sizing: border-box; padding: 6px 8px; }
@@ -28,14 +29,14 @@
 <main>
   <canvas id="track"></canvas>
   <aside>
-    <h1>Feu du croisement</h1>
+    <h1>Accès coopératif</h1>
     <p id="phase" class="muted">en attente du contrôleur</p>
     <div class="lamp" aria-hidden="true">
       <span id="lamp-green"></span>
       <span id="lamp-red"></span>
     </div>
-    <p class="muted">Un seul huit, le même sens. Le rouge ne s'allume que si un robot est dans le disque. Le capteur garde 280 mm avec celui de devant.</p>
-    <form id="add-robot">
+    <p class="muted">Node-RED attribue un seul droit de passage. Pointillé gris : limite d’arrêt. Cercle gris : stockage. Cercle rouge : conflit.</p>
+    <form id="add-robot" hidden>
       <label for="speed">Vitesse du nouveau robot (mm/s)</label>
       <input id="speed" type="number" min="40" max="500" value="280">
       <button type="submit">Ajouter un robot</button>
@@ -86,6 +87,12 @@ function draw() {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, width, height);
   ctx.lineWidth = 2 * devicePixelRatio;
+  ctx.strokeStyle = "#867d72";
+  ctx.setLineDash([6, 6]);
+  ctx.beginPath();
+  ctx.arc(X(scene.center[0]), Y(scene.center[1]), scene.stop_radius_mm * scale, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.setLineDash([]);
   ctx.strokeStyle = "#c8bfb0";
   ctx.beginPath();
   ctx.arc(X(scene.center[0]), Y(scene.center[1]), scene.storage_radius_mm * scale, 0, Math.PI * 2);
@@ -139,18 +146,15 @@ function draw() {
 }
 
 function paintLamps() {
-  const phase = scene && scene.phase ? scene.phase.phase : "open";
-  const occupied = phase === "occupied";
-  document.getElementById("lamp-green").className = occupied ? "" : "on-green";
-  document.getElementById("lamp-red").className = occupied ? "on-red" : "";
+  const phase = scene && scene.phase;
+  const owner = phase && phase.green[0];
   const label = document.getElementById("phase");
-  if (!scene || !scene.phase) {
-    label.textContent = "en attente";
-    return;
-  }
-  label.textContent = occupied
-    ? "rouge · " + scene.phase.occupied_by + " dans le croisement"
-    : "voie libre";
+  document.getElementById("lamp-green").className = owner ? "on-green" : "";
+  document.getElementById("lamp-red").className = owner ? "" : "on-red";
+  if (!phase) label.textContent = "Aucun droit · contrôleur absent";
+  else if (owner) label.textContent = owner + (phase.occupied_by ? " · passage en cours" : " · droit réservé");
+  else if (phase.phase === "all_red") label.textContent = "Rouge intégral · " + phase.reason;
+  else label.textContent = "Croisement libre · en attente d’une demande";
 }
 
 function paintRobots() {
@@ -164,8 +168,8 @@ function paintRobots() {
     const motion = stopped ? "arrêté" : Math.round(robot.speed_mm_s) + " mm/s";
     const sensor = robot.sensor_mm == null
       ? ""
-      : " · capteur " + Math.round(robot.sensor_mm) + " mm → " + robot.leader_id;
-    block.textContent = robot.id + " · " + robot.zone + " · " + motion + sensor;
+      : " · capteur " + Math.round(robot.sensor_mm) + " mm" + (robot.leader_id ? " → " + robot.leader_id : "");
+    block.textContent = robot.id + " · " + robot.zone + " · " + robot.passage + " · " + motion + sensor;
     root.appendChild(block);
   }
 }
@@ -173,6 +177,7 @@ function paintRobots() {
 async function poll() {
   const response = await fetch("/scene");
   scene = await response.json();
+  document.getElementById("add-robot").hidden = scene.observe;
   draw();
   paintLamps();
   paintRobots();
